@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -19,9 +20,18 @@ var (
 	recButt      = "Записаться"
 	cancelButt   = "Отменить запись"
 	userRecButt  = "Увидеть свою запись"
+	nearDateButt = "Ближайщая свободная зпись"
 	bot          *tgbotapi.BotAPI
 
 	firstMenuMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(nearDateButt, nearDateButt),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(userRecButt, userRecButt),
+		),
+	)
+	allDateMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(findNoteButt, findNoteButt),
 		),
@@ -51,8 +61,8 @@ func main() {
 	}
 	defer f.Close()
 	go runDailyUpdater(f)
-	delPast(f) //не забудь настроить
-	addFut(f)
+	//delPast(f) //не забудь настроить
+	//addFut(f)
 	//инициализирую бота, а токен находится в файле env
 	err = godotenv.Load()
 	if err != nil {
@@ -165,7 +175,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 				return
 			case 5:
 				if !IsValidPhoneRegex(currentData[4]) {
-					sendReply(chatID, "Номер телефона введенн неверно")
+					sendReply(chatID, "Номер телефона введен неверно")
 					validErr(chatID, currentData)
 					break
 				}
@@ -260,7 +270,22 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		idCheck[chatId] = nil
 		readyToRec[chatId] = false
 		idCheckMu.Unlock()
+	case nearDateButt:
+		setUserReadyToRec(chatId)
+		freeDaysData := freeDays(f, 1)
+		i := 1
+		for key, val := range freeDaysData {
+			if key == tomorrowDate(i) {
+				if val != nil {
+					sendReply(chatId, strings.Join(val, " "))
+				} else {
+					i++
+				}
+			}
+		}
+		msg := tgbotapi.NewEditMessageReplyMarkup(chatId, message.MessageID, allDateMarkup)
 
+		bot.Send(msg)
 	case userRecButt:
 		userStruct := userStorage[chatId]
 		if userStruct.userDate == "" {

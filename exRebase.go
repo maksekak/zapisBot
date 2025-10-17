@@ -16,9 +16,16 @@ func runDailyUpdater(f *excelize.File) {
 	for {
 		sleepTime := waitUntilNextDay()
 		fmt.Printf("Ожидание до следующих суток: %v\n", sleepTime)
+		date := tomorrowDate(-1)
+		for key, user := range userStorage {
+			if user.userDate == date {
+				cancelRec(f, key, userStorage)
+			}
+		}
 		time.Sleep(sleepTime)
 		delPast(f)
 		addFut(f)
+
 	}
 }
 func delPast(f *excelize.File) {
