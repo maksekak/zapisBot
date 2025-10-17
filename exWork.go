@@ -84,9 +84,9 @@ func cancelRec(f *excelize.File, id int64, userStorage map[int64]userStatus) {
 	}
 	f.Save()
 }
-func nearDate(f *excelize.File, dayChange int) (s string, sm []string) {
-	date := tomorrowDate(dayChange)
-	for key, vel := range freeDays(f, dayChange) {
+func nearDate(f *excelize.File) (s string, sm []string) {
+	date := tomorrowDate(1)
+	for key, vel := range freeDays(f, 1) {
 		if key == date {
 			s, sm = key, vel
 		}
