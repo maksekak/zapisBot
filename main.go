@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -17,7 +20,7 @@ import (
 var (
 	findNoteButt = "Увидеть свободные записи"
 	backButton   = "Назад↩"
-	firstMenu    = "<b>Здрасте</b>\n"
+	firstMenu    = "<b>Здрасте</b>"
 	recButt      = "Записаться"
 
 	bot             *tgbotapi.BotAPI
@@ -136,13 +139,13 @@ func handleMessage(message *tgbotapi.Message, userStorage map[int64]userStatus, 
 	fmt.Println(isReady)
 	if !isReady {
 		// Обрабатываем как команду, если не в режиме ввода
-		if strings.HasPrefix(text, "/") {
-			err := handleCommand(message.Chat.ID, text)
-			if err != nil {
-				log.Printf("Ошибка выполнения команды для %d: %v", chatID, err)
-				sendErrorReply(message.Chat.ID, "Ошибка при выполнении команды")
-			}
+
+		err := handleCommand(message.Chat.ID, text)
+		if err != nil {
+			log.Printf("Ошибка выполнения команды для %d: %v", chatID, err)
+			sendErrorReply(message.Chat.ID, "Ошибка при выполнении команды")
 		}
+
 		return
 	}
 	if isReady {
@@ -155,19 +158,41 @@ func handleMessage(message *tgbotapi.Message, userStorage map[int64]userStatus, 
 
 		// Проверяем количество полей
 		switch len(currentData) {
+
 		case 1:
+			if !IsDateFormat(currentData[0]) {
+				sendReply(chatID, "Дата введенна неверно")
+				validErr(chatID, currentData)
+				break
+			}
+
 			sendReply(message.Chat.ID, "Введите время например(11)")
 			return
 		case 2:
+			if !HasValidNumber(currentData[1]) {
+				sendReply(chatID, "Время введенно неверно")
+				validErr(chatID, currentData)
+				break
+			}
 			sendReply(message.Chat.ID, "Введите имя")
 			return
 		case 3:
 			sendReply(message.Chat.ID, "Введите фамилию")
 			return
 		case 4:
+			if !IsValidName(currentData[2], currentData[3]) {
+				sendReply(chatID, "Имя или фамилия введенна неверно")
+				validErr(chatID, currentData)
+				break
+			}
 			sendReply(message.Chat.ID, "Введите номер телефона")
 			return
 		case 5:
+			if !IsValidPhoneRegex(currentData[4]) {
+				sendReply(chatID, "Номер телефона введенн неверно")
+				validErr(chatID, currentData)
+				break
+			}
 			sendReply(message.Chat.ID, "Введите описания заказа")
 			return
 		}
@@ -175,7 +200,12 @@ func handleMessage(message *tgbotapi.Message, userStorage map[int64]userStatus, 
 		// Сохраняем данные
 		if len(currentData) == 6 {
 			err := dataToStruct(currentData, chatID, userStorage)
-
+			// Очищаем временные данные
+			mu.Lock()
+			delete(inputData, chatID)
+			currentData = nil
+			mu.Unlock()
+			sendRecButt(chatID)
 			if err != nil {
 				log.Printf("Ошибка сохранения данных для %d: %v", chatID, err)
 				sendErrorReply(message.Chat.ID, "Не удалось сохранить данные. Попробуйте снова.")
@@ -183,12 +213,6 @@ func handleMessage(message *tgbotapi.Message, userStorage map[int64]userStatus, 
 			}
 		}
 
-		// Очищаем временные данные
-		mu.Lock()
-		delete(inputData, chatID)
-		mu.Unlock()
-
-		sendRecButt(chatID)
 	}
 }
 
@@ -196,9 +220,12 @@ func handleCommand(chatId int64, command string) error {
 	var err error
 	switch command {
 	case "/start":
-		err = sendMenu(chatId)
+		//err = sendMenu(chatId)
+		//readyToRec[chatId] = false
 
 	}
+	sendMenu(chatId)
+	readyToRec[chatId] = false
 	return err
 }
 func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
@@ -224,6 +251,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		markup = firstMenuMarkup
 		log.Printf("%v ->", message.From)
 		log.Printf("%v нажал %s", message.From, query.Data)
+		readyToRec[chatId] = false
 
 	case findNoteButt:
 		sendReply(message.Chat.ID, "Введите дату например(01.01.2025)")
@@ -355,4 +383,73 @@ func sendRecButt(chatId int64) {
 	msg.ParseMode = tgbotapi.ModeHTML
 	msg.ReplyMarkup = recMarkup
 	bot.Send(msg)
+}
+
+// IsDateFormat проверяет, что строка соответствует формату ДД.ММ.ГГГГ
+func IsDateFormat(s string) bool {
+	// Регулярное выражение: 2 цифры, точка, 2 цифры, точка, 4 цифры
+	pattern := `^\d{2}\.\d{2}\.\d{4}$`
+	matched, _ := regexp.MatchString(pattern, s)
+	return matched
+}
+func HasValidNumber(s string) bool {
+	// Удаляем пробелы и пытаемся преобразовать в int
+	s = strings.TrimSpace(s)
+	num, err := strconv.Atoi(s)
+	if err != nil {
+		return false // Не число
+	}
+
+	// Проверяем диапазон и исключения
+	return num >= 9 && num <= 18 && num != 12 && num != 13
+}
+func IsValidName(firstName, lastName string) bool {
+	// Проверка на пустоту
+	if firstName == "" || lastName == "" {
+		return false
+	}
+
+	// Минимальная длина
+	if len(firstName) < 2 || len(lastName) < 2 {
+		return false
+	}
+
+	// Проверка символов (только буквы и пробелы)
+	for _, r := range firstName {
+		if !unicode.IsLetter(r) && r != ' ' {
+			return false
+		}
+	}
+	for _, r := range lastName {
+		if !unicode.IsLetter(r) && r != ' ' {
+			return false
+		}
+	}
+
+	// Проверка пробелов
+	trimmedFirst := strings.TrimSpace(firstName)
+	trimmedLast := strings.TrimSpace(lastName)
+	if trimmedFirst != firstName || trimmedLast != lastName {
+		return false // пробелы в начале/конце
+	}
+	if strings.Contains(firstName, "  ") || strings.Contains(lastName, "  ") {
+		return false // несколько пробелов подряд
+	}
+
+	return true
+}
+
+var phoneRegex = regexp.MustCompile(
+	`^(\+7|8)(\s*\(\d{3}\)\s*|\s*\d{3}\s*)?[\d\s\-]{7,15}$`,
+)
+
+func IsValidPhoneRegex(phone string) bool {
+	return phoneRegex.MatchString(phone)
+}
+func validErr(chatID int64, currentData []string) {
+	mu.Lock()
+	delete(inputData, chatID)
+	currentData = nil
+	mu.Unlock()
+	sendMenu(chatID)
 }
