@@ -61,6 +61,41 @@ func nearDate(f *excelize.File, dayChange int) (s string, sm []string) {
 	}
 	return
 }
+func reFind(f *excelize.File, userStorage map[int64]userStatus, id int64) bool {
+	mu.Lock()
+	defer mu.Unlock()
+
+	line, err := f.GetRows("Sheet1")
+	if err != nil {
+		fmt.Printf("Ошибка чтения строки: %v\n", err)
+
+	}
+	userStruct, exists := userStorage[id]
+	if !exists {
+		fmt.Printf("Пользователь с id=%d не найден\n", id)
+
+	}
+
+	dataUs := []string{
+		userStruct.userDate,
+		userStruct.userTime,
+	}
+	for i, r := range line {
+		if strings.Contains(r[0], dataUs[0]) {
+			for j := range 8 {
+				if strings.Contains(line[i][j+1], dataUs[1]) {
+					if line[i+1][j+1] == "" {
+						return true
+					} else {
+						return false
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
 func newName(f *excelize.File, userStorage map[int64]userStatus, id int64) {
 	mu.Lock()
 	defer mu.Unlock()
