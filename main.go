@@ -273,7 +273,12 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		log.Printf("Обработка записи для chatId=%d", chatId)
 
 		fmt.Println(userStorage)
-		newName(f, userStorage, chatId)
+
+		if reFind(f, userStorage, chatId) {
+			newName(f, userStorage, chatId)
+		} else {
+			sendReply(chatId, "Запись занята")
+		}
 
 		idCheckMu.Lock()
 		idCheck[chatId] = nil
