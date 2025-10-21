@@ -14,11 +14,16 @@ import (
 func tomorrowDate(p int) string {
 	now := time.Now()
 	tomorrow := now.AddDate(0, 0, p)
-	month := int(tomorrow.Month())
+
 	day := tomorrow.Day()
+	month := int(tomorrow.Month())
 	year := tomorrow.Year()
-	date := fmt.Sprintf("%d.%d.%d", day, month, year)
-	return date
+
+	// Берём последние 2 цифры года
+	shortYear := year % 100
+
+	// Форматируем с ведущими нулями для дня и месяца
+	return fmt.Sprintf("%02d.%02d.%02d", day, month, shortYear)
 }
 
 func freeDays(f *excelize.File, dayChange int) map[string][]string {
