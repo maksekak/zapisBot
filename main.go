@@ -7,9 +7,11 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -47,6 +49,7 @@ var (
 	idCheckMu sync.Mutex
 
 	inputData = make(map[int64][]string)
+	dates     []string
 )
 
 type userStatus struct {
@@ -121,13 +124,15 @@ func handleUpdate(f *excelize.File, update tgbotapi.Update) {
 	switch {
 	//обработка сообщения
 	case update.Message != nil:
-		handleMessage(update.Message, userStorage, inputData)
+		handleMessage(f, update.Message, userStorage, inputData)
 	case update.CallbackQuery != nil:
 		handleBut(f, update.CallbackQuery)
 	}
 }
 
-func handleMessage(message *tgbotapi.Message, userStorage map[int64]userStatus, inputData map[int64][]string) {
+var currentData []string
+
+func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[int64]userStatus, inputData map[int64][]string) {
 	text := message.Text
 	chatID := message.From.ID
 
@@ -153,7 +158,7 @@ func handleMessage(message *tgbotapi.Message, userStorage map[int64]userStatus, 
 		// Безопасное добавление данных
 		mu.Lock()
 		inputData[chatID] = append(inputData[chatID], text)
-		currentData := inputData[chatID]
+		currentData = inputData[chatID]
 		mu.Unlock()
 
 		// Проверяем количество полей
@@ -199,17 +204,26 @@ func handleMessage(message *tgbotapi.Message, userStorage map[int64]userStatus, 
 
 		// Сохраняем данные
 		if len(currentData) == 6 {
+
 			err := dataToStruct(currentData, chatID, userStorage)
+			if !reFind(f, userStorage, chatID) {
+				sendReply(chatID, "Запись занята")
+				readyToRec[chatID] = false
+			}
 			// Очищаем временные данные
 			mu.Lock()
 			delete(inputData, chatID)
 			currentData = nil
 			mu.Unlock()
-			sendRecButt(chatID)
+			if readyToRec[chatID] {
+				sendRecButt(chatID)
+			}
+
 			if err != nil {
 				log.Printf("Ошибка сохранения данных для %d: %v", chatID, err)
 				sendErrorReply(message.Chat.ID, "Не удалось сохранить данные. Попробуйте снова.")
 				return
+
 			}
 		}
 
@@ -254,20 +268,20 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		readyToRec[chatId] = false
 
 	case findNoteButt:
-		sendReply(message.Chat.ID, "Введите дату например(01.01.2025)")
+
 		setUserReadyToRec(chatId)
 		freeDaysData := freeDays(f, 1)
 		if len(freeDaysData) == 0 {
 			text = "Свободных слотов нет"
 		} else {
-			var lines []string
-			for k, i := range freeDaysData {
-				lines = append(lines, fmt.Sprintf("Дата: %s, Время: %s", k, i))
-			}
-			text = strings.Join(lines, "\n")
+			msg := tgbotapi.NewMessage(chatId, getFreeDays(freeDaysData))
+			msg.ParseMode = tgbotapi.ModeHTML
+			bot.Send(msg)
+
 		}
 		fmt.Print(readyToRec)
 		markup = BackMarkup
+		sendReply(message.Chat.ID, "Введите дату например(01.01.25)")
 
 	case recButt:
 		log.Printf("Обработка записи для chatId=%d", chatId)
@@ -393,7 +407,7 @@ func sendRecButt(chatId int64) {
 // IsDateFormat проверяет, что строка соответствует формату ДД.ММ.ГГГГ
 func IsDateFormat(s string) bool {
 	// Регулярное выражение: 2 цифры, точка, 2 цифры, точка, 4 цифры
-	pattern := `^\d{2}\.\d{2}\.\d{4}$`
+	pattern := `^\d{2}\.\d{2}\.\d{2}$`
 	matched, _ := regexp.MatchString(pattern, s)
 	return matched
 }
@@ -457,4 +471,77 @@ func validErr(chatID int64, currentData []string) {
 	currentData = nil
 	mu.Unlock()
 	sendMenu(chatID)
+}
+func getFreeDays(dates map[string][]string) string {
+	if len(dates) == 0 {
+		return "🚫 Все даты заняты"
+	}
+
+	var lines []string
+	lines = append(lines, "🕘<b> Выберите дату и время свободной записи:</b>\n")
+
+	// 1. Извлекаем и сортируем даты (формат ДД.ММ.ГГ)
+	sortedDates := make([]string, 0, len(dates))
+	for date := range dates {
+		sortedDates = append(sortedDates, date)
+	}
+
+	// Сортируем как строки (для формата ДД.ММ.ГГ это работает корректно)
+	sort.Strings(sortedDates)
+
+	// 2. Формируем строки по шаблону
+	for _, dateStr := range sortedDates {
+		times := dates[dateStr]
+
+		// Преобразуем строку даты в time.Time для получения дня недели
+		date, err := time.Parse("02.01.06", dateStr) // ДД.ММ.ГГ
+		if err != nil {
+			continue // пропускаем некорректные даты
+		}
+
+		// Форматируем дату как "20.10.2025, пн"
+		formattedDate := date.Format("02.1.2006") // ДД.ММ.ГГГГ
+		weekday := date.Weekday()
+		dayAbbr := map[time.Weekday]string{
+			time.Monday:    "пн",
+			time.Tuesday:   "вт",
+			time.Wednesday: "ср",
+			time.Thursday:  "чт",
+			time.Friday:    "пт",
+			time.Saturday:  "сб",
+			time.Sunday:    "вс",
+		}[weekday]
+
+		lines = append(lines, formattedDate+", "+dayAbbr)
+
+		// Обрабатываем время: преобразуем "11" → "11:00", "9" → "09:00"
+		var formattedTimes []string
+		for _, t := range times {
+			// Добавляем ":00" и форматируем с ведущим нулём для часов < 10
+			hour, err := strconv.Atoi(t)
+			if err != nil {
+				continue // пропускаем некорректное время
+			}
+			formattedTime := fmt.Sprintf("%02d:00", hour)
+			formattedTimes = append(formattedTimes, formattedTime)
+		}
+
+		// Объединяем время через запятую
+		if len(formattedTimes) > 0 {
+			timesStr := strings.Join(formattedTimes, ", ")
+			lines = append(lines, timesStr)
+		} else {
+			lines = append(lines, "Нет свободных окошек")
+		}
+
+		// Добавляем пустую строку между записями (опционально)
+		lines = append(lines, "----------------------------------------------------------------------")
+	}
+
+	// Удаляем последнюю пустую строку
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+
+	return strings.Join(lines, "\n")
 }
