@@ -201,7 +201,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 	switch query.Data {
 	case findNoteButt:
 		setUserReadyToRec(chatId)
-		freeDaysData := freeDays(f, 1)
+		freeDaysData := freeDays(f, -21)
 		if len(freeDaysData) == 0 {
 			text = "Свободных слотов нет"
 		} else {
