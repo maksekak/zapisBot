@@ -92,7 +92,7 @@ func sendFreeDays(dates map[string][]string) string {
 	}
 
 	var lines []string
-	lines = append(lines, "🕘<b> Выберите дату и время свободной записи:</b>\n")
+	lines = append(lines, "🕘<b>Выберите дату и время свободной записи:</b>\n")
 
 	// 1. Извлекаем и сортируем даты (формат ДД.ММ.ГГ)
 	sortedDates := make([]string, 0, len(dates))
@@ -114,7 +114,7 @@ func sendFreeDays(dates map[string][]string) string {
 		}
 
 		// Форматируем дату как "20.10.2025, пн"
-		formattedDate := date.Format("<b>02.1.06</b>") // ДД.ММ.ГГГГ
+		formattedDate := date.Format("<b><u>02.1.06</u></b>") // ДД.ММ.ГГГГ
 		weekday := date.Weekday()
 		dayAbbr := map[time.Weekday]string{
 			time.Monday:    "пн",
@@ -136,7 +136,7 @@ func sendFreeDays(dates map[string][]string) string {
 			if err != nil {
 				continue // пропускаем некорректное время
 			}
-			formattedTime := fmt.Sprintf("%2d:00", hour)
+			formattedTime := fmt.Sprintf("%d:00", hour)
 			formattedTimes = append(formattedTimes, formattedTime)
 		}
 
@@ -145,11 +145,13 @@ func sendFreeDays(dates map[string][]string) string {
 			timesStr := strings.Join(formattedTimes, ", ")
 			lines = append(lines, timesStr)
 		} else {
-			lines = append(lines, "Нет свободных окошек")
+			lines = append(lines, "Нет свободных записей")
 		}
 
 		// Добавляем пустую строку между записями (опционально)
-		lines = append(lines, "----------------------------------------------------------------------")
+		//textSize := len(lines)
+		lines = append(lines, strings.Repeat("·", 70))
+		//textSize = 0
 	}
 
 	// Удаляем последнюю пустую строку

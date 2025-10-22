@@ -28,6 +28,7 @@ func tomorrowDate(p int) string {
 
 func freeDays(f *excelize.File, dayChange int) map[string][]string {
 	date := tomorrowDate(dayChange)
+
 	start := false
 	freeTime := make([]string, 0)
 	mapOfDates := make(map[string][]string)
