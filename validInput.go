@@ -15,10 +15,21 @@ func IsDateFormat(s string) bool {
 	matched, _ := regexp.MatchString(pattern, s)
 	return matched
 }
-func HasValidNumber(s string) bool {
-	// Регулярное выражение для формата hh:mm
-	re := regexp.MustCompile(`^([01]\d|2[0-3]):([0-5]\d)$`)
-	return re.MatchString(s)
+func HasValidTime(value string) bool {
+	// Проверяем, что строка не пустая и не содержит лишних пробелов
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false
+	}
+
+	// Регулярное выражение для проверки всех допустимых форматов
+	pattern := `^(` +
+		`(?:0?[0-9]|1[0-9]|2[0-3])` + // Часы: 0–23 (с ведущим 0 или без)
+		`(?::[0-5][0-9])?` + // Минуты: 00–59 (опционально)
+		`)$`
+
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(value)
 }
 func IsValidName(firstName, lastName string) bool {
 	// Проверка на пустоту
