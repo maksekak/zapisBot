@@ -49,7 +49,7 @@ func freeDays(f *excelize.File, dayChange int) map[string][]string {
 			}
 			mapOfDates[r[0]] = freeTime
 			freeTime = nil
-			if i == 150 {
+			if i == 152 {
 				break
 			}
 		}
@@ -141,6 +141,7 @@ func newName(f *excelize.File, userStorage map[int64]userStatus, id int64) {
 						f.SetCellValue("Sheet1", cellRef, dataUs[2+k])
 					}
 				}
+
 			}
 		}
 	}
