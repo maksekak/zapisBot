@@ -39,6 +39,7 @@ func main() {
 		fmt.Println("oшибка открытия файла", err)
 	}
 	defer f.Close()
+	delPast()
 	//инициализирую бота, а токен находится в файле env
 	err = godotenv.Load()
 	if err != nil {
@@ -120,10 +121,10 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 					break
 				}
 			}
-			sendReply(message.Chat.ID, "Пожалуйста, введите время например(11)")
+			sendReply(message.Chat.ID, "Пожалуйста, введите время например:<b>11</b>)")
 			return
 		case 2:
-			if !HasValidNumber(currentData[1]) {
+			if !HasValidTime(currentData[1]) {
 				sendReply(chatID, "Время введенно неверно")
 				validErr(chatID, currentData)
 				break
@@ -210,7 +211,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			bot.Send(msg)
 		}
 		fmt.Print(readyToRec)
-		sendReply(message.Chat.ID, "Пожалуйста, введите дату например(01.01.25)")
+		sendReply(message.Chat.ID, "Пожалуйста, введите дату например:<b>01.01.25</b>")
 	case recButt:
 		log.Printf("Обработка записи для chatId=%d", chatId)
 		fmt.Println(userStorage)
