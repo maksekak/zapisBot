@@ -44,7 +44,9 @@ func main() {
 		fmt.Println("oшибка открытия файла", errr)
 	}
 	defer fr.Close()
-	runDailyUpdater(fr)
+	go runDailyUpdater(fr)
+	delPast(fr)
+	addFut(fr)
 	//инициализирую бота, а токен находится в файле env
 	err = godotenv.Load()
 	if err != nil {
@@ -257,6 +259,7 @@ func sendMenu(chatId int64) error {
 }
 func sendReply(chatID int64, text string) {
 	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ParseMode = tgbotapi.ModeHTML
 	bot.Send(msg)
 }
 func sendErrorReply(chatID int64, text string) {
