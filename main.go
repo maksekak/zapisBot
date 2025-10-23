@@ -39,7 +39,12 @@ func main() {
 		fmt.Println("oшибка открытия файла", err)
 	}
 	defer f.Close()
-	delPast()
+	var fr, errr = excelize.OpenFile("testRebase.xlsx")
+	if err != nil {
+		fmt.Println("oшибка открытия файла", errr)
+	}
+	defer fr.Close()
+	runDailyUpdater(fr)
 	//инициализирую бота, а токен находится в файле env
 	err = godotenv.Load()
 	if err != nil {
@@ -61,7 +66,7 @@ func main() {
 	// наверное получаю апдейты с бота(скорее всего)
 	updates := bot.GetUpdatesChan(u)
 	go receiveUpdetes(f, ctx, updates)
-	log.Println("Начал прослушивать обновления. Нажмите enter для остановки")
+
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 	cancel()
 

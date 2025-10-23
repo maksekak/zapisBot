@@ -3,34 +3,50 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/xuri/excelize/v2"
 )
 
 var ()
 
-func delPast() {
-	var fr, err = excelize.OpenFile("testRebase.xlsx")
-	if err != nil {
-		fmt.Println("oшибка открытия файла", err)
-	}
-	defer fr.Close()
-	tDate := tomorrowDate(-1)
-	fmt.Println(tDate)
-	line, err := fr.GetRows("Sheet1")
-	for i, r := range line {
-		for x := range 9 {
-			cellRef, err := excelize.CoordinatesToCellName(x+1, 1+i)
-			if err != nil {
-				fmt.Printf("Не удалось преобразовать координаты: %v\n", err)
-				return
-			}
-			fr.SetCellValue("Sheet1", cellRef, nil)
+func waitUntilNextDay() time.Duration {
+	now := time.Now()
+	next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	return next.Sub(now)
+}
 
-		}
+func runDailyUpdater(fr *excelize.File) {
+	for {
+		sleepTime := waitUntilNextDay()
+		fmt.Printf("Ожидание до следующих суток: %v\n", sleepTime)
+
+		time.Sleep(sleepTime)
+
+		delPast(fr)
+
+	}
+}
+
+func delPast(fr *excelize.File) {
+
+	tDate := tomorrowDate(0)
+	fmt.Println(tDate)
+	var indexRows []int
+	line, err := fr.GetRows("Sheet1")
+	if err != nil {
+		fmt.Println(err)
+	}
+	for i, r := range line {
+		indexRows = append(indexRows, i)
+
 		if strings.Contains(r[0], tDate) {
 			break
 		}
 	}
+	for i := len(indexRows) - 1; i >= 0; i-- {
+		fr.RemoveRow("Sheet1", i)
+	}
+	fmt.Print(len(indexRows))
 	fr.Save()
 }
