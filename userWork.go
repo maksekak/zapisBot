@@ -86,6 +86,7 @@ func setUserReadyToRec(chatId int64) error {
 
 	return nil
 }
+
 func sendFreeDays(dates map[string][]string) string {
 	if len(dates) == 0 {
 		return "🚫 Все даты заняты"
@@ -99,20 +100,29 @@ func sendFreeDays(dates map[string][]string) string {
 	for date := range dates {
 		sortedDates = append(sortedDates, date)
 	}
+	// Сортировка с учётом дня, месяца и года
+	sort.Slice(sortedDates, func(i, j int) bool {
+		// Преобразуем строки в формат time.Time
+		t1, err1 := time.Parse("02.01.06", sortedDates[i])
+		t2, err2 := time.Parse("02.01.06", sortedDates[j])
 
-	// Сортируем как строки (для формата ДД.ММ.ГГ это работает корректно)
-	sort.Strings(sortedDates)
+		// Если одна из дат некорректна — ставим корректную раньше
+		if err1 != nil || err2 != nil {
+			return err1 == nil // если t1 корректна, она должна быть раньше
+		}
+
+		// Сравниваем даты: true → dates[i] должна быть раньше dates[j]
+		return t1.Before(t2)
+	})
 
 	// 2. Формируем строки по шаблону
 	for _, dateStr := range sortedDates {
 		times := dates[dateStr]
-
 		// Преобразуем строку даты в time.Time для получения дня недели
 		date, err := time.Parse("02.01.06", dateStr) // ДД.ММ.ГГ
 		if err != nil {
 			continue // пропускаем некорректные даты
 		}
-
 		// Форматируем дату как "20.10.2025, пн"
 		formattedDate := date.Format("<b><u>02.1.06</u></b>") // ДД.ММ.ГГГГ
 		weekday := date.Weekday()
@@ -125,9 +135,7 @@ func sendFreeDays(dates map[string][]string) string {
 			time.Saturday:  "сб",
 			time.Sunday:    "вс",
 		}[weekday]
-
 		lines = append(lines, formattedDate+", "+dayAbbr)
-
 		// Обрабатываем время: преобразуем "11" → "11:00", "9" → "09:00"
 		var formattedTimes []string
 		for _, t := range times {
@@ -153,7 +161,6 @@ func sendFreeDays(dates map[string][]string) string {
 		lines = append(lines, strings.Repeat("·", 70))
 		//textSize = 0
 	}
-
 	// Удаляем последнюю пустую строку
 	if len(lines) > 0 && lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1]

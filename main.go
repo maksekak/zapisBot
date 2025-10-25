@@ -29,6 +29,7 @@ var (
 			tgbotapi.NewInlineKeyboardButtonData(recButt, recButt),
 		),
 	)
+	isRemove  bool = false
 	mu        sync.Mutex
 	idCheckMu sync.Mutex
 )
@@ -39,14 +40,9 @@ func main() {
 		fmt.Println("oшибка открытия файла", err)
 	}
 	defer f.Close()
-	var fr, errr = excelize.OpenFile("testRebase.xlsx")
-	if err != nil {
-		fmt.Println("oшибка открытия файла", errr)
-	}
-	defer fr.Close()
-	go runDailyUpdater(fr)
-	delPast(fr)
-	addFut(fr)
+	go runDailyUpdater(f)
+	delPast(f)
+	addFut(f)
 	//инициализирую бота, а токен находится в файле env
 	err = godotenv.Load()
 	if err != nil {
@@ -209,7 +205,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 	switch query.Data {
 	case findNoteButt:
 		setUserReadyToRec(chatId)
-		freeDaysData := freeDays(f, -21)
+		freeDaysData := freeDays(f, 1)
 		if len(freeDaysData) == 0 {
 			text = "Свободных слотов нет"
 		} else {
