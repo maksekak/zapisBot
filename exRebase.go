@@ -2,90 +2,67 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
 )
-
-var ()
 
 func waitUntilNextDay() time.Duration {
 	now := time.Now()
 	next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
 	return next.Sub(now)
 }
-
-func runDailyUpdater(fr *excelize.File) {
+func runDailyUpdater(f *excelize.File) {
 	for {
 		sleepTime := waitUntilNextDay()
 		fmt.Printf("Ожидание до следующих суток: %v\n", sleepTime)
 		time.Sleep(sleepTime)
-		delPast(fr)
-
+		delPast(f)
+		addFut(f)
 	}
 }
-
-func delPast(fr *excelize.File) {
+func delPast(f *excelize.File) {
 	mu.Lock()
 	defer mu.Unlock()
-	tDate := tomorrowDate(0)
-	fmt.Println(tDate)
-	var indexRows []int
-	line, err := fr.GetRows("Sheet1")
-	if err != nil {
-		fmt.Println(err)
-	}
-	for i, r := range line {
-		indexRows = append(indexRows, i)
-		if strings.Contains(r[0], tDate) {
-			break
-		}
-	}
-	for i := len(indexRows) - 1; i >= 0; i-- {
-		fr.RemoveRow("Sheet1", i)
+	for i := 5; i >= 0; i-- {
+		f.RemoveRow("Sheet1", i)
+
 	}
 }
-func addFut(fr *excelize.File) {
-	line, err := fr.GetRows("Sheet1")
-	lenn := len(line)
+func addFut(f *excelize.File) {
+	mu.Lock()
+	defer mu.Unlock()
+	line, err := f.GetRows("Sheet1")
 	if err != nil {
 		fmt.Println(err)
 	}
-	p := 22 //len(indexRows) / 5
+	lenOfTable := len(line) - 5
+	fmt.Println(line[lenOfTable][0])
+	l := line[lenOfTable][0]
+	dateToAdd, err := getTomorrowShortDate(l)
+	if err != nil {
+		fmt.Println(err)
+	}
 	time := []string{"9", "10", "11", "14", "15", "16", "17", "18"}
-	kostil := []string{"", "", "", "", "", "", "", "", "|"}
-	var dateToAdd []string
-	for i := range p {
-		dateToAdd = append(dateToAdd, tomorrowDate(i+1))
+	kostil := []string{"|", "|", "|", "|", "|"}
+	rowToAdd := append([]string{dateToAdd}, time...)
+	fmt.Println(rowToAdd)
+	cords, _ := excelize.CoordinatesToCellName(1, lenOfTable+6)
+	cords2, _ := excelize.CoordinatesToCellName(10, lenOfTable+6)
+	f.SetSheetRow("Sheet1", cords, &rowToAdd)
+	f.SetSheetCol("Sheet1", cords2, &kostil)
+	fmt.Println(cords, cords2)
+	f.Save()
+}
+func getTomorrowShortDate(dateStr string) (string, error) {
+	// Шаг 1. Парсим входную строку в time.Time
+	// Шаблон "02.01.06" соответствует формату "ДД.ММ.ГГ"
+	parsedTime, err := time.Parse("02.01.06", dateStr)
+	if err != nil {
+		return "", fmt.Errorf("неверный формат даты '%s': %w", dateStr, err)
 	}
-
-	var result []string
-	for i, item := range dateToAdd {
-		// Добавляем текущий элемент
-		result = append(result, item)
-		// Если это НЕ последний элемент — добавляем 4 пробелов как отдельные элементы
-		if i < len(dateToAdd)-1 {
-			for j := 0; j < 4; j++ {
-				result = append(result, "") // каждый пробел — отдельный элемент
-			}
-		}
-	}
-
-	cords, _ := excelize.CoordinatesToCellName(1, lenn+1)
-	fmt.Println(cords)
-	fr.SetSheetCol("Sheet1", cords, &result)
-	fmt.Print(result)
-	for i := lenn + 1; i <= len(result); i++ {
-		cordss, _ := excelize.CoordinatesToCellName(2, i)
-		fmt.Println(cordss)
-		fr.SetSheetRow("Sheet1", cordss, &kostil)
-		//if i == 0 || i%5 == 0 {
-
-		fr.SetSheetRow("Sheet1", cordss, &time)
-		//}
-
-	}
-	fmt.Println(lenn, len(result))
-	fr.Save()
+	// Шаг 2. Добавляем 24 часа (1 день)
+	tomorrow := parsedTime.Add(24 * time.Hour)
+	// Шаг 3. Форматируем обратно в строку в формате "01.01.25"
+	return tomorrow.Format("02.01.06"), nil
 }
