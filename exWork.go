@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	//"strconv"
@@ -150,4 +151,27 @@ func newName(f *excelize.File, userStorage map[int64]userStatus, id int64) {
 	if err := f.Save(); err != nil {
 		fmt.Printf("Ошибка сохранения файла: %v\n", err)
 	}
+}
+func copyTable(f *excelize.File) {
+
+	st, err := excelize.OpenFile("styleTable.xlsx")
+	if err != nil {
+		log.Println(err)
+	}
+
+	if err != nil {
+		log.Println(err)
+	}
+	line, err := f.GetRows("Sheet1")
+	if err != nil {
+		log.Println(err)
+	}
+	for i := range len(line) {
+		for j, r := range line[i] {
+			cords, _ := excelize.CoordinatesToCellName(j+1, i+1)
+			st.SetCellValue("Sheet1", cords, r)
+		}
+	}
+	st.Save()
+	st.Close()
 }
