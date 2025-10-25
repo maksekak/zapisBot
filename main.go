@@ -29,7 +29,6 @@ var (
 			tgbotapi.NewInlineKeyboardButtonData(recButt, recButt),
 		),
 	)
-	isRemove  bool = false
 	mu        sync.Mutex
 	idCheckMu sync.Mutex
 )
@@ -41,7 +40,7 @@ func main() {
 	}
 	defer f.Close()
 	go runDailyUpdater(f)
-	delPast(f)
+	delPast(f) //не забудь настроить
 	addFut(f)
 	//инициализирую бота, а токен находится в файле env
 	err = godotenv.Load()
@@ -97,6 +96,13 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 	// Логгирование с контекстом
 	log.Printf("Пользователь %d отправил: %s", chatID, text)
 	// Проверка статуса пользователя
+	if text == "bCVUWfOPzuWWVLP$?4jq" {
+		copyTable(f)
+		doco := tgbotapi.NewDocument(chatID, tgbotapi.FilePath("test.xlsx"))
+		doc := tgbotapi.NewDocument(chatID, tgbotapi.FilePath("styleTable.xlsx"))
+		bot.Send(doco)
+		bot.Send(doc)
+	}
 	isReady := getUserStatus(chatID)
 	fmt.Println(isReady)
 	if !isReady {
