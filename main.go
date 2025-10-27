@@ -14,21 +14,27 @@ import (
 )
 
 var (
-	findNoteButt = "Увидеть свободные записи"
-	firstMenu    = "<b>Здрасте</b>"
-	recButt      = "Записаться"
-	bot          *tgbotapi.BotAPI
-
+	findNoteButt    = "Увидеть свободные записи"
+	firstMenu       = "<b>Здрасте</b>"
+	recButt         = "Записаться"
+	userRecButt     = "Увидеть свою запись"
+	bot             *tgbotapi.BotAPI
+	userRec         map[int64][]string
 	firstMenuMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(findNoteButt, findNoteButt),
 		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(userRecButt, userRecButt),
+		),
 	)
+
 	recMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(recButt, recButt),
 		),
 	)
+
 	mu        sync.Mutex
 	idCheckMu sync.Mutex
 )
@@ -98,9 +104,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 	// Проверка статуса пользователя
 	if text == "bCVUWfOPzuWWVLP$?4jq" {
 		copyTable(f)
-		doco := tgbotapi.NewDocument(chatID, tgbotapi.FilePath("test.xlsx"))
 		doc := tgbotapi.NewDocument(chatID, tgbotapi.FilePath("styleTable.xlsx"))
-		bot.Send(doco)
 		bot.Send(doc)
 	}
 	isReady := getUserStatus(chatID)
@@ -117,55 +121,69 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 	if isReady {
 		// Безопасное добавление данных
 		mu.Lock()
+
 		inputData[chatID] = append(inputData[chatID], text)
 		currentData = inputData[chatID]
+
 		mu.Unlock()
-		// Проверяем количество полей
-		switch len(currentData) {
-		case 1:
-			if !IsDateFormat(currentData[0]) {
-				if currentData[0] != "" {
-					sendReply(chatID, "Дата введенна неверно")
+		if !getUserHasRec(chatID, userStorage) {
+			// Проверяем количество полей
+			switch len(currentData) {
+			case 1:
+				if !IsDateFormat(currentData[0]) {
+					if currentData[0] != "" {
+						sendReply(chatID, "Дата введенна неверно")
+						validErr(chatID, currentData)
+						break
+					}
+				}
+				sendReply(message.Chat.ID, "Пожалуйста, введите время например: <b>11</b>")
+				return
+			case 2:
+				if !HasValidTime(currentData[1]) {
+					sendReply(chatID, "Время введенно неверно")
 					validErr(chatID, currentData)
 					break
 				}
+				sendReply(message.Chat.ID, "Пожалуйста, введите имя")
+				return
+			case 3:
+				sendReply(message.Chat.ID, "Пожалуйста, ведите фамилию")
+				return
+			case 4:
+				if !IsValidName(currentData[2], currentData[3]) {
+					sendReply(chatID, "Имя или фамилия введенна неверно")
+					validErr(chatID, currentData)
+					break
+				}
+				sendReply(message.Chat.ID, "Пожалуйста, укажите ваш номер телефона (начинайте с +7 или 8)")
+				return
+			case 5:
+				if !IsValidPhoneRegex(currentData[4]) {
+					sendReply(chatID, "Номер телефона введенн неверно")
+					validErr(chatID, currentData)
+					break
+				}
+				sendReply(message.Chat.ID, "Введите описания заказа")
+				return
 			}
-			sendReply(message.Chat.ID, "Пожалуйста, введите время например:<b>11</b>)")
-			return
-		case 2:
-			if !HasValidTime(currentData[1]) {
-				sendReply(chatID, "Время введенно неверно")
-				validErr(chatID, currentData)
-				break
-			}
-			sendReply(message.Chat.ID, "Пожалуйста, введите имя")
-			return
-		case 3:
-			sendReply(message.Chat.ID, "Пожалуйста, ведите фамилию")
-			return
-		case 4:
-			if !IsValidName(currentData[2], currentData[3]) {
-				sendReply(chatID, "Имя или фамилия введенна неверно")
-				validErr(chatID, currentData)
-				break
-			}
-			sendReply(message.Chat.ID, "Пожалуйста, укажите ваш номер телефона (начинайте с +7 или 8)")
-			return
-		case 5:
-			if !IsValidPhoneRegex(currentData[4]) {
-				sendReply(chatID, "Номер телефона введенн неверно")
-				validErr(chatID, currentData)
-				break
-			}
-			sendReply(message.Chat.ID, "Введите описания заказа")
-			return
+		} else {
+			sendReply(chatID, "У вас уже есть запись")
+			sendMenu(chatID)
 		}
 		// Сохраняем данные
 		if len(currentData) == 6 {
 			err := dataToStruct(currentData, chatID, userStorage)
+
 			if !reFind(f, userStorage, chatID) {
 				sendReply(chatID, "Запись занята")
+				mu.Lock()
+				user := userStatus{
+					userHasRec: false,
+				}
+				userStorage[chatID] = user
 				readyToRec[chatID] = false
+				mu.Unlock()
 			}
 			// Очищаем временные данные
 			mu.Lock()
@@ -220,7 +238,10 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			bot.Send(msg)
 		}
 		fmt.Print(readyToRec)
-		sendReply(message.Chat.ID, "Пожалуйста, введите дату например:<b>01.01.25</b>")
+		if !getUserHasRec(chatId, userStorage) {
+			sendReply(message.Chat.ID, "Пожалуйста, введите дату например: <b>01.01.25</b>")
+		}
+
 	case recButt:
 		log.Printf("Обработка записи для chatId=%d", chatId)
 		fmt.Println(userStorage)
@@ -233,6 +254,15 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		idCheck[chatId] = nil
 		readyToRec[chatId] = false
 		idCheckMu.Unlock()
+
+	case userRecButt:
+		userStruct := userStorage[chatId]
+		if userStruct.userDate == "" {
+			sendReply(chatId, "Вы пока что не записались")
+		} else {
+			usr := fmt.Sprintf("<b>📝 Данные вашей записи:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userStruct.userDate, userStruct.userTime, userStruct.userName, userStruct.userSurname, userStruct.userPhone, userStruct.userOrder)
+			sendReply(chatId, usr)
+		}
 	default:
 		log.Printf("Неизвестный callback: %s", query.Data)
 		return

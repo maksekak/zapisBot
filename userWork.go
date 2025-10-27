@@ -25,6 +25,7 @@ type userStatus struct {
 	userName    string
 	userSurname string
 	userOrder   string
+	userHasRec  bool
 }
 
 func getUserStatus(id int64) bool {
@@ -32,6 +33,16 @@ func getUserStatus(id int64) bool {
 	defer mu.Unlock()
 
 	return readyToRec[id]
+}
+func getUserHasRec(id int64, userStorage map[int64]userStatus) bool {
+	mu.Lock()
+	defer mu.Unlock()
+	// Безопасное получение с проверкой существования
+	user := userStorage[id]
+
+	fmt.Println(user.userHasRec, "dfdfdsf")
+	return user.userHasRec
+
 }
 func dataToStruct(slice []string, id int64, userStorage map[int64]userStatus) error {
 	// Валидация входных данных
@@ -58,6 +69,7 @@ func dataToStruct(slice []string, id int64, userStorage map[int64]userStatus) er
 		userPhone:   slice[4],
 		userOrder:   slice[5],
 		userId:      id,
+		userHasRec:  true,
 	}
 
 	// Запись в мапу
