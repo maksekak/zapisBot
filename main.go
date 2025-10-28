@@ -14,12 +14,13 @@ import (
 )
 
 var (
-	findNoteButt    = "Увидеть свободные записи"
-	firstMenu       = "<b>Здрасте</b>"
-	recButt         = "Записаться"
-	userRecButt     = "Увидеть свою запись"
-	bot             *tgbotapi.BotAPI
-	userRec         map[int64][]string
+	findNoteButt = "Увидеть свободные записи"
+	firstMenu    = "<b>Здрасте</b>"
+	recButt      = "Записаться"
+	cancelButt   = "Отменить запись"
+	userRecButt  = "Увидеть свою запись"
+	bot          *tgbotapi.BotAPI
+
 	firstMenuMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(findNoteButt, findNoteButt),
@@ -28,7 +29,11 @@ var (
 			tgbotapi.NewInlineKeyboardButtonData(userRecButt, userRecButt),
 		),
 	)
-
+	cancelMarkup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(cancelButt, cancelButt),
+		),
+	)
 	recMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(recButt, recButt),
@@ -169,6 +174,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			}
 		} else {
 			sendReply(chatID, "У вас уже есть запись")
+			sendCancelButt(chatID)
 			sendMenu(chatID)
 		}
 		// Сохраняем данные
@@ -262,7 +268,10 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		} else {
 			usr := fmt.Sprintf("<b>📝 Данные вашей записи:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userStruct.userDate, userStruct.userTime, userStruct.userName, userStruct.userSurname, userStruct.userPhone, userStruct.userOrder)
 			sendReply(chatId, usr)
+			sendCancelButt(chatId)
 		}
+	case cancelButt:
+		cancelRec(f, chatId, userStorage)
 	default:
 		log.Printf("Неизвестный callback: %s", query.Data)
 		return
@@ -302,5 +311,10 @@ func sendRecButt(chatId int64) {
 	msg := tgbotapi.NewMessage(chatId, "Данные успешно сохранены! Нажмите кнопку записаться")
 	msg.ParseMode = tgbotapi.ModeHTML
 	msg.ReplyMarkup = recMarkup
+	bot.Send(msg)
+}
+func sendCancelButt(chatId int64) {
+	msg := tgbotapi.NewMessage(chatId, "Нажмите кнопку отменить запись чтобы отменить запись")
+	msg.ReplyMarkup = cancelMarkup
 	bot.Send(msg)
 }
