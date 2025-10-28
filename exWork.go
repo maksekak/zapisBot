@@ -59,7 +59,31 @@ func freeDays(f *excelize.File, dayChange int) map[string][]string {
 	fmt.Println(mapOfDates)
 	return mapOfDates
 }
+func cancelRec(f *excelize.File, id int64, userStorage map[int64]userStatus) {
+	mu.Lock()
+	defer mu.Unlock()
+	user := userStorage[id]
+	line, err := f.GetRows("Sheet1")
+	if err != nil {
+		fmt.Printf("Ошибка чтения строки: %v\n", err)
 
+	}
+	for i, r := range line {
+		if r[0] == user.userDate {
+			for j, c := range r {
+				if c == user.userTime {
+					for v := range 4 {
+						cellRef, _ := excelize.CoordinatesToCellName(j+1, i+2+v)
+						f.SetCellValue("Sheet1", cellRef, "")
+					}
+					delete(userStorage, id)
+
+				}
+			}
+		}
+	}
+	f.Save()
+}
 func nearDate(f *excelize.File, dayChange int) (s string, sm []string) {
 	date := tomorrowDate(dayChange)
 	for key, vel := range freeDays(f, dayChange) {
