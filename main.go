@@ -15,12 +15,12 @@ import (
 )
 
 var (
-	findNoteButt = "Увидеть свободные записи"
+	findNoteButt = "Все свободные даты"
 	firstMenu    = "<b>Здрасте</b>"
 	recButt      = "Записаться"
 	cancelButt   = "Отменить запись"
 	userRecButt  = "Увидеть свою запись"
-	nearDateButt = "Ближайщая свободная зпись"
+	nearDateButt = "Ближайщая свободная дата"
 	bot          *tgbotapi.BotAPI
 
 	firstMenuMarkup = tgbotapi.NewInlineKeyboardMarkup(
@@ -255,7 +255,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		}
 		fmt.Print(readyToRec)
 		if !getUserHasRec(chatId, userStorage) {
-			sendReply(message.Chat.ID, "Пожалуйста, введите дату например: <b>01.01.25</b>")
+			sendReply(message.Chat.ID, "Если хотите записаться, введите дату например: <b>01.01.25</b>")
 		}
 
 	case recButt:
@@ -277,7 +277,11 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		for key, val := range freeDaysData {
 			if key == tomorrowDate(i) {
 				if val != nil {
-					sendReply(chatId, strings.Join(val, " "))
+					var str = fmt.Sprintf("Ближайшие часы записи доступные на: <b><u>%s</u></b>\n", key)
+					sendReply(chatId, str)
+					val = append(val, "")
+					sendReply(chatId, strings.Join(val, ":00, "))
+					sendReply(chatId, fmt.Sprintf("Если хотите записаться, введите дату: <b>%s</b>", key))
 				} else {
 					i++
 				}
@@ -333,13 +337,13 @@ func sendErrorReply(chatID int64, text string) {
 	bot.Send(msg)
 }
 func sendRecButt(chatId int64) {
-	msg := tgbotapi.NewMessage(chatId, "Данные успешно сохранены! Нажмите кнопку записаться")
+	msg := tgbotapi.NewMessage(chatId, "Если вы согласны на обработку ваших личных данных (Имя, Фамилия, Номер телефона), нажмите кнопку Записаться")
 	msg.ParseMode = tgbotapi.ModeHTML
 	msg.ReplyMarkup = recMarkup
 	bot.Send(msg)
 }
 func sendCancelButt(chatId int64) {
-	msg := tgbotapi.NewMessage(chatId, "Нажмите кнопку отменить запись чтобы отменить запись")
+	msg := tgbotapi.NewMessage(chatId, "Если хотите отменить запись, нажмите кнопку")
 	msg.ReplyMarkup = cancelMarkup
 	bot.Send(msg)
 }
