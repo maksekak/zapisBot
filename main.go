@@ -16,7 +16,7 @@ import (
 
 var (
 	findNoteButt = "Все свободные даты"
-	firstMenu    = "<b>Здрасте</b>"
+	firstMenu    = "<b>Здравстуйте я телеграмм бот PulverFarbe вы можете записаться на пескоструйную обработку</b>"
 	recButt      = "Записаться"
 	cancelButt   = "Отменить запись"
 	userRecButt  = "Увидеть свою запись"
@@ -145,6 +145,8 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			// Проверяем количество полей
 			switch len(currentData) {
 			case 1:
+				freeDaysData := freeDays(f, -10)
+				//data,present:=freeDaysData[currentData[1]]
 				if !IsDateFormat(currentData[0]) {
 					if currentData[0] != "" {
 						sendReply(chatID, "Дата введенна неверно")
@@ -152,14 +154,24 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 						break
 					}
 				}
-				sendReply(message.Chat.ID, "Пожалуйста, введите время например: <b>11</b>")
-				return
+				if _, ok := freeDaysData[currentData[0]]; ok {
+					sendReply(message.Chat.ID, "Пожалуйста, введите время например: <b>11</b>")
+					return
+				} else {
+					sendReply(chatID, "Дата введенна неверно")
+					validErr(chatID, currentData)
+					break
+				}
+
 			case 2:
+
 				if !HasValidTime(currentData[1]) {
 					sendReply(chatID, "Время введенно неверно")
 					validErr(chatID, currentData)
 					break
+
 				}
+
 				sendReply(message.Chat.ID, "Пожалуйста, введите имя")
 				return
 			case 3:
@@ -245,7 +257,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 	switch query.Data {
 	case findNoteButt:
 		setUserReadyToRec(chatId)
-		freeDaysData := freeDays(f, 1)
+		freeDaysData := freeDays(f, -10)
 		if len(freeDaysData) == 0 {
 			text = "Свободных слотов нет"
 		} else {
@@ -263,6 +275,12 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		fmt.Println(userStorage)
 		if reFind(f, userStorage, chatId) {
 			newName(f, userStorage, chatId)
+			user := userStorage[chatId]
+			msg := tgbotapi.NewEditMessageText(chatId, message.MessageID, fmt.Sprintf("<b>Запись успешно произведена на: %s - %s</b>", user.userDate, user.userTime))
+			msg.ReplyMarkup = nil
+			msg.ParseMode = tgbotapi.ModeHTML
+			bot.Send(msg)
+			sendMenu(chatId)
 		} else {
 			sendReply(chatId, "Запись занята")
 		}
