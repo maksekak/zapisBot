@@ -15,14 +15,14 @@ import (
 )
 
 var (
-	findNoteButt = "Все свободные даты"
-	firstMenu    = "<b>Здравстуйте я телеграмм бот PulverFarbe вы можете записаться на пескоструйную обработку</b>"
-	recButt      = "Записаться"
-	cancelButt   = "Отменить запись"
-	userRecButt  = "Увидеть свою запись"
-	nearDateButt = "Ближайщая свободная дата"
-	bot          *tgbotapi.BotAPI
-
+	findNoteButt    = "Все свободные даты"
+	firstMenu       = "<b>Здравстуйте я телеграмм бот PulverFarbe вы можете записаться на пескоструйную обработку</b>"
+	recButt         = "Записаться"
+	cancelButt      = "Отменить запись"
+	userRecButt     = "Увидеть свою запись"
+	nearDateButt    = "Ближайщая свободная дата"
+	bot             *tgbotapi.BotAPI
+	daychange       = -22
 	firstMenuMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(nearDateButt, nearDateButt),
@@ -49,7 +49,7 @@ var (
 			tgbotapi.NewInlineKeyboardButtonData(recButt, recButt),
 		),
 	)
-
+	userRec   = make(map[int64][]string)
 	mu        sync.Mutex
 	idCheckMu sync.Mutex
 )
@@ -123,7 +123,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 		bot.Send(doc)
 	}
 	isReady := getUserStatus(chatID)
-	fmt.Println(isReady)
+	fmt.Println(readyToRec, "readytorec")
 	if !isReady {
 		// Обрабатываем как команду, если не в режиме ввода
 		err := handleCommand(message.Chat.ID, text)
@@ -145,11 +145,11 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			// Проверяем количество полей
 			switch len(currentData) {
 			case 1:
-				freeDaysData := freeDays(f, -10)
+				freeDaysData := freeDays(f, daychange)
 				//data,present:=freeDaysData[currentData[1]]
 				if !IsDateFormat(currentData[0]) {
 					if currentData[0] != "" {
-						sendReply(chatID, "Дата введенна неверно")
+						sendReply(chatID, "Дата введена неверно")
 						validErr(chatID, currentData)
 						break
 					}
@@ -158,7 +158,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 					sendReply(message.Chat.ID, "Пожалуйста, введите время например: <b>11</b>")
 					return
 				} else {
-					sendReply(chatID, "Дата введенна неверно")
+					sendReply(chatID, "Дата введена неверно")
 					validErr(chatID, currentData)
 					break
 				}
@@ -166,7 +166,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			case 2:
 
 				if !HasValidTime(currentData[1]) {
-					sendReply(chatID, "Время введенно неверно")
+					sendReply(chatID, "Время введено неверно")
 					validErr(chatID, currentData)
 					break
 
@@ -179,7 +179,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 				return
 			case 4:
 				if !IsValidName(currentData[2], currentData[3]) {
-					sendReply(chatID, "Имя или фамилия введенна неверно")
+					sendReply(chatID, "Имя или фамилия введена неверно")
 					validErr(chatID, currentData)
 					break
 				}
@@ -220,6 +220,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			mu.Unlock()
 			if readyToRec[chatID] {
 				sendRecButt(chatID)
+				fmt.Println("dfgsdfsdfgsdgdfsgsgsdfg")
 			}
 			if err != nil {
 				log.Printf("Ошибка сохранения данных для %d: %v", chatID, err)
@@ -257,7 +258,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 	switch query.Data {
 	case findNoteButt:
 		setUserReadyToRec(chatId)
-		freeDaysData := freeDays(f, -10)
+		freeDaysData := freeDays(f, daychange)
 		if len(freeDaysData) == 0 {
 			text = "Свободных слотов нет"
 		} else {
@@ -277,6 +278,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			newName(f, userStorage, chatId)
 			user := userStorage[chatId]
 			msg := tgbotapi.NewEditMessageText(chatId, message.MessageID, fmt.Sprintf("<b>Запись успешно произведена на: %s - %s</b>", user.userDate, user.userTime))
+
 			msg.ReplyMarkup = nil
 			msg.ParseMode = tgbotapi.ModeHTML
 			bot.Send(msg)
@@ -290,8 +292,9 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		idCheckMu.Unlock()
 	case nearDateButt:
 		setUserReadyToRec(chatId)
-		freeDaysData := freeDays(f, 1)
-		i := 1
+		i := daychange
+		freeDaysData := freeDays(f, i)
+
 		for key, val := range freeDaysData {
 			if key == tomorrowDate(i) {
 				if val != nil {
@@ -309,11 +312,11 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 
 		bot.Send(msg)
 	case userRecButt:
-		userStruct := userStorage[chatId]
-		if userStruct.userDate == "" {
+
+		if len(userRec[chatId]) == 0 {
 			sendReply(chatId, "Вы пока что не записались")
 		} else {
-			usr := fmt.Sprintf("<b>📝 Данные вашей записи:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userStruct.userDate, userStruct.userTime, userStruct.userName, userStruct.userSurname, userStruct.userPhone, userStruct.userOrder)
+			usr := fmt.Sprintf("<b>📝 Данные вашей записи:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userRec[chatId][0], userRec[chatId][1], userRec[chatId][2], userRec[chatId][3], userRec[chatId][4], userRec[chatId][5])
 			sendReply(chatId, usr)
 			sendCancelButt(chatId)
 		}
@@ -355,7 +358,7 @@ func sendErrorReply(chatID int64, text string) {
 	bot.Send(msg)
 }
 func sendRecButt(chatId int64) {
-	msg := tgbotapi.NewMessage(chatId, "Если вы согласны на обработку ваших личных данных (Имя, Фамилия, Номер телефона), нажмите кнопку Записаться")
+	msg := tgbotapi.NewMessage(chatId, "Нажимая кнопку Записаться вы даёте согласие на обработку ваших личных данных (Имя, Фамилия, Номер телефона)")
 	msg.ParseMode = tgbotapi.ModeHTML
 	msg.ReplyMarkup = recMarkup
 	bot.Send(msg)

@@ -74,6 +74,9 @@ func dataToStruct(slice []string, id int64, userStorage map[int64]userStatus) er
 
 	// Запись в мапу
 	userStorage[id] = user
+	temp := []string{user.userDate, user.userTime, user.userName, user.userSurname, user.userPhone, user.userOrder}
+
+	userRec[id] = temp
 
 	// Логгирование
 	log.Printf("Данные сохранены для id=%d: %+v", id, user)
