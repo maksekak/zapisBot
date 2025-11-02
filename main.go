@@ -22,7 +22,7 @@ var (
 	userRecButt     = "Увидеть свою запись"
 	nearDateButt    = "Ближайщая свободная дата"
 	bot             *tgbotapi.BotAPI
-	daychange       = -22
+	daychange       = 1
 	firstMenuMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(nearDateButt, nearDateButt),
@@ -262,9 +262,12 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		if len(freeDaysData) == 0 {
 			text = "Свободных слотов нет"
 		} else {
+			//sendReply(chatId, sendFreeDays(freeDaysData))
+
 			msg := tgbotapi.NewMessage(chatId, sendFreeDays(freeDaysData))
 			msg.ParseMode = tgbotapi.ModeHTML
 			bot.Send(msg)
+			fmt.Println(sendFreeDays(freeDaysData))
 		}
 		fmt.Print(readyToRec)
 		if !getUserHasRec(chatId, userStorage) {
@@ -297,7 +300,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 
 		for key, val := range freeDaysData {
 			if key == tomorrowDate(i) {
-				if val != nil {
+				if len(val) != 0 {
 					var str = fmt.Sprintf("Ближайшие часы записи доступные на: <b><u>%s</u></b>\n", key)
 					sendReply(chatId, str)
 					val = append(val, "")
@@ -322,6 +325,11 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		}
 	case cancelButt:
 		cancelRec(f, chatId, userStorage)
+		msg := tgbotapi.NewEditMessageText(chatId, message.MessageID, "<b>Запись отменена</b>")
+		msg.ReplyMarkup = nil
+		msg.ParseMode = tgbotapi.ModeHTML
+		bot.Send(msg)
+		sendMenu(chatId)
 	default:
 		log.Printf("Неизвестный callback: %s", query.Data)
 		return
