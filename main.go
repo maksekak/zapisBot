@@ -123,7 +123,6 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 		bot.Send(doc)
 	}
 	isReady := getUserStatus(chatID)
-	fmt.Println(readyToRec, "readytorec")
 	if !isReady {
 		// Обрабатываем как команду, если не в режиме ввода
 		err := handleCommand(message.Chat.ID, text)
@@ -220,7 +219,6 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			mu.Unlock()
 			if readyToRec[chatID] {
 				sendRecButt(chatID)
-				fmt.Println("dfgsdfsdfgsdgdfsgsgsdfg")
 			}
 			if err != nil {
 				log.Printf("Ошибка сохранения данных для %d: %v", chatID, err)
@@ -267,16 +265,13 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			msg := tgbotapi.NewMessage(chatId, sendFreeDays(freeDaysData))
 			msg.ParseMode = tgbotapi.ModeHTML
 			bot.Send(msg)
-			fmt.Println(sendFreeDays(freeDaysData))
 		}
-		fmt.Print(readyToRec)
 		if !getUserHasRec(chatId, userStorage) {
 			sendReply(message.Chat.ID, "Если хотите записаться, введите дату например: <b>01.01.25</b>")
 		}
 
 	case recButt:
 		log.Printf("Обработка записи для chatId=%d", chatId)
-		fmt.Println(userStorage)
 		if reFind(f, userStorage, chatId) {
 			newName(f, userStorage, chatId)
 			user := userStorage[chatId]

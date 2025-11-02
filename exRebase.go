@@ -53,12 +53,10 @@ func addFut(f *excelize.File) {
 	time := []string{"9", "10", "11", "14", "15", "16", "17", "18"}
 	kostil := []string{"|", "|", "|", "|", "|"}
 	rowToAdd := append([]string{dateToAdd}, time...)
-	fmt.Println(rowToAdd)
 	cords, _ := excelize.CoordinatesToCellName(1, lenOfTable+6)
 	cords2, _ := excelize.CoordinatesToCellName(10, lenOfTable+6)
 	f.SetSheetRow("Sheet1", cords, &rowToAdd)
 	f.SetSheetCol("Sheet1", cords2, &kostil)
-	fmt.Println(cords, cords2)
 	f.Save()
 }
 func getTomorrowShortDate(dateStr string) (string, error) {

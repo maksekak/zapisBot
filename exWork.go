@@ -39,7 +39,6 @@ func freeDays(f *excelize.File, dayChange int) map[string][]string {
 	if err != nil {
 		fmt.Println("ошибка чтения строки", err)
 	}
-	fmt.Println(date)
 	for i, r := range line {
 		if strings.Contains(r[0], date) {
 			start = true
@@ -58,7 +57,6 @@ func freeDays(f *excelize.File, dayChange int) map[string][]string {
 			}
 		}
 	}
-	fmt.Println(mapOfDates)
 	return mapOfDates
 }
 func cancelRec(f *excelize.File, id int64, userStorage map[int64]userStatus) {
