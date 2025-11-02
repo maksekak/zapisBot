@@ -39,8 +39,6 @@ func getUserHasRec(id int64, userStorage map[int64]userStatus) bool {
 	defer mu.Unlock()
 	// Безопасное получение с проверкой существования
 	user := userStorage[id]
-
-	fmt.Println(user.userHasRec, "dfdfdsf")
 	return user.userHasRec
 
 }
