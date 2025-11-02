@@ -139,7 +139,7 @@ func sendFreeDays(dates map[string][]string) string {
 			continue // пропускаем некорректные даты
 		}
 		// Форматируем дату как "20.10.2025, пн"
-		formattedDate := date.Format("<b><u>02.1.06</u></b>") // ДД.ММ.ГГГГ
+		formattedDate := date.Format("<b><u>02.01.06</u></b>") // ДД.ММ.ГГГГ
 		weekday := date.Weekday()
 		dayAbbr := map[time.Weekday]string{
 			time.Monday:    "пн",

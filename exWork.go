@@ -28,6 +28,8 @@ func tomorrowDate(p int) string {
 }
 
 func freeDays(f *excelize.File, dayChange int) map[string][]string {
+	mu.Lock()
+	defer mu.Unlock()
 	date := tomorrowDate(dayChange)
 
 	start := false
@@ -51,7 +53,7 @@ func freeDays(f *excelize.File, dayChange int) map[string][]string {
 			mapOfDates[r[0]] = freeTime
 			freeTime = nil
 
-			if i == len(line)-2 {
+			if i == len(line)-14 {
 				break
 			}
 		}
@@ -63,26 +65,28 @@ func cancelRec(f *excelize.File, id int64, userStorage map[int64]userStatus) {
 	mu.Lock()
 	defer mu.Unlock()
 	user := userStorage[id]
-	line, err := f.GetRows("Sheet1")
-	if err != nil {
-		fmt.Printf("Ошибка чтения строки: %v\n", err)
+	if user.userDate != "" {
+		line, err := f.GetRows("Sheet1")
+		if err != nil {
+			fmt.Printf("Ошибка чтения строки: %v\n", err)
 
-	}
-	for i, r := range line {
-		if r[0] == user.userDate {
-			for j, c := range r {
-				if c == user.userTime {
-					for v := range 4 {
-						cellRef, _ := excelize.CoordinatesToCellName(j+1, i+2+v)
-						f.SetCellValue("Sheet1", cellRef, "")
+		}
+		for i, r := range line {
+			if r[0] == user.userDate {
+				for j, c := range r {
+					if c == user.userTime {
+						for v := range 4 {
+							cellRef, _ := excelize.CoordinatesToCellName(j+1, i+2+v)
+							f.SetCellValue("Sheet1", cellRef, "")
+						}
+						delete(userStorage, id)
+						delete(userRec, id)
 					}
-					delete(userStorage, id)
-
 				}
 			}
 		}
+		f.Save()
 	}
-	f.Save()
 }
 func nearDate(f *excelize.File) (s string, sm []string) {
 	date := tomorrowDate(1)
