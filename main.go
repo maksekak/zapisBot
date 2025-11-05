@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -76,7 +75,6 @@ func main() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	// создаю интерфейсы контекста
-	ctx := context.Background()
 
 	// наверное получаю апдейты с бота(скорее всего)
 	updates := bot.GetUpdatesChan(u)
@@ -84,12 +82,7 @@ func main() {
 	//delPast(f) //не забудь настроить
 	//addFut(f)
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		case update := <-updates:
-			handleUpdate(f, update)
-		}
+		handleUpdate(f, <-updates)
 	}
 }
 func handleUpdate(f *excelize.File, update tgbotapi.Update) {
