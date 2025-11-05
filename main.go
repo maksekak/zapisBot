@@ -60,9 +60,7 @@ func main() {
 		fmt.Println("oшибка открытия файла", err)
 	}
 	defer f.Close()
-	go runDailyUpdater(f)
-	//delPast(f) //не забудь настроить
-	//addFut(f)
+
 	//инициализирую бота, а токен находится в файле env
 	err = godotenv.Load()
 	if err != nil {
@@ -87,7 +85,9 @@ func main() {
 
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 	cancel()
-
+	go runDailyUpdater(f)
+	//delPast(f) //не забудь настроить
+	//addFut(f)
 }
 
 // idCheck map[id][]string{}
