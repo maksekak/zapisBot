@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -78,21 +77,12 @@ func main() {
 	u.Timeout = 60
 	// создаю интерфейсы контекста
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+
 	// наверное получаю апдейты с бота(скорее всего)
 	updates := bot.GetUpdatesChan(u)
-	go receiveUpdetes(f, ctx, updates)
-
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
-	cancel()
 	go runDailyUpdater(f)
 	//delPast(f) //не забудь настроить
 	//addFut(f)
-}
-
-// idCheck map[id][]string{}
-func receiveUpdetes(f *excelize.File, ctx context.Context, updates tgbotapi.UpdatesChannel) {
-	//бесконечный for
 	for {
 		select {
 		case <-ctx.Done():
