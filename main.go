@@ -100,7 +100,7 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 	// Логгирование с контекстом
 	log.Printf("Пользователь %d отправил: %s", chatID, text)
 	// Проверка статуса пользователя
-	if text == "bCVUWfOPzuWWVLP$?4jq" {
+	if text == os.Getenv("pass") {
 		copyTable(f)
 		doc := tgbotapi.NewDocument(chatID, tgbotapi.FilePath("styleTable.xlsx"))
 		bot.Send(doc)
@@ -246,8 +246,6 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		if len(freeDaysData) == 0 {
 			text = "Свободных слотов нет"
 		} else {
-			//sendReply(chatId, sendFreeDays(freeDaysData))
-
 			msg := tgbotapi.NewMessage(chatId, sendFreeDays(freeDaysData))
 			msg.ParseMode = tgbotapi.ModeHTML
 			bot.Send(msg)
