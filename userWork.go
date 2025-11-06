@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,14 +20,14 @@ var (
 )
 
 type userStatus struct {
-	userId      int64
-	userDate    string
-	userTime    string
-	userPhone   string
-	userName    string
-	userSurname string
-	userOrder   string
-	userHasRec  bool
+	UserId      int64  `json:"UserId"`
+	UserDate    string `json:"UserDate"`
+	UserTime    string `json:"UserTime"`
+	UserPhone   string `json:"UserPhone"`
+	UserName    string `json:"UserName"`
+	UserSurname string `json:"UserSurname"`
+	UserOrder   string `json:"UserOrder"`
+	UserHasRec  bool   `json:"UserHasRec"`
 }
 
 func getUserStatus(id int64) bool {
@@ -39,7 +41,7 @@ func getUserHasRec(id int64, userStorage map[int64]userStatus) bool {
 	defer mu.Unlock()
 	// Безопасное получение с проверкой существования
 	user := userStorage[id]
-	return user.userHasRec
+	return user.UserHasRec
 
 }
 func dataToStruct(slice []string, id int64, userStorage map[int64]userStatus) error {
@@ -57,30 +59,75 @@ func dataToStruct(slice []string, id int64, userStorage map[int64]userStatus) er
 	mu.Lock()
 	defer mu.Unlock()
 	// Создание структуры
-	time, _ := ParseHourFromTime(slice[1])
-	t := fmt.Sprintf("%d", time)
+	timee, _ := ParseHourFromTime(slice[1])
+	t := fmt.Sprintf("%d", timee)
 	user := userStatus{
-		userDate:    slice[0],
-		userTime:    t,
-		userName:    slice[2],
-		userSurname: slice[3],
-		userPhone:   slice[4],
-		userOrder:   slice[5],
-		userId:      id,
-		userHasRec:  true,
+		UserDate:    slice[0],
+		UserTime:    t,
+		UserName:    slice[2],
+		UserSurname: slice[3],
+		UserPhone:   slice[4],
+		UserOrder:   slice[5],
+		UserId:      id,
+		UserHasRec:  true,
 	}
 
 	// Запись в мапу
 	userStorage[id] = user
-	temp := []string{user.userDate, user.userTime, user.userName, user.userSurname, user.userPhone, user.userOrder}
-
-	userRec[id] = temp
 
 	// Логгирование
 	log.Printf("Данные сохранены для id=%d: %+v", id, user)
 
 	return nil // Успех
 }
+func SaveUserToFile(userStorage map[int64]userStatus, id int64) error {
+
+	// Проходим по всем пользователям в карте
+	for userID, data := range userStorage {
+		// Формируем путь к файлу: <директория>/<userID>.json
+		filename := fmt.Sprintf("%d.json", userID)
+
+		// Преобразуем структуру в JSON
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			return fmt.Errorf("ошибка при кодировании данных пользователя %d в JSON: %w", userID, err)
+		}
+
+		// Записываем данные в файл (создаёт или перезаписывает)
+		err = os.WriteFile(filename, jsonData, 0755)
+		if err != nil {
+			return fmt.Errorf("ошибка при записи в файл %s: %w", filename, err)
+		}
+
+		fmt.Printf("Данные пользователя %d успешно записаны в файл %s\n", userID, filename)
+	}
+
+	return nil
+}
+
+func LoadUserByID(id int64) userStatus {
+	filename := fmt.Sprintf("%d.json", id)
+	file, err := os.Open(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return userStatus{} // Пользователь не найден
+		}
+		// Логируем ошибку (опционально)
+		log.Printf("Ошибка при открытии файла %s: %v", filename, err)
+		return userStatus{}
+	}
+	defer file.Close()
+
+	var status userStatus
+	err = json.NewDecoder(file).Decode(&status)
+	if err != nil {
+		// Логируем ошибку (опционально)
+		log.Printf("Ошибка при декодировании JSON из файла %s: %v", filename, err)
+		return userStatus{}
+	}
+	return status
+}
+
 func setUserReadyToRec(chatId int64) error {
 	// Валидация входных данных
 	if chatId <= 0 {
