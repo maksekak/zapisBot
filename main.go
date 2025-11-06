@@ -181,15 +181,18 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			sendCancelButt(chatID)
 			sendMenu(chatID)
 		}
+
 		// Сохраняем данные
 		if len(currentData) == 6 {
 			err := dataToStruct(currentData, chatID, userStorage)
-
+			if err != nil {
+				fmt.Println(err, "datatostruct")
+			}
 			if !reFind(f, userStorage, chatID) {
 				sendReply(chatID, "Запись занята")
 				mu.Lock()
 				user := userStatus{
-					userHasRec: false,
+					UserHasRec: false,
 				}
 				userStorage[chatID] = user
 				readyToRec[chatID] = false
@@ -258,12 +261,16 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		if reFind(f, userStorage, chatId) {
 			newName(f, userStorage, chatId)
 			user := userStorage[chatId]
-			msg := tgbotapi.NewEditMessageText(chatId, message.MessageID, fmt.Sprintf("<b>Запись успешно произведена на: %s - %s</b>", user.userDate, user.userTime))
+			msg := tgbotapi.NewEditMessageText(chatId, message.MessageID, fmt.Sprintf("<b>Запись успешно произведена на: %s - %s</b>", user.UserDate, user.UserTime))
 
 			msg.ReplyMarkup = nil
 			msg.ParseMode = tgbotapi.ModeHTML
 			bot.Send(msg)
 			sendMenu(chatId)
+			err := SaveUserToFile(userStorage, chatId)
+			if err != nil {
+				fmt.Println(err)
+			}
 		} else {
 			sendReply(chatId, "Запись занята")
 		}
@@ -290,14 +297,16 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			}
 		}
 		msg := tgbotapi.NewEditMessageReplyMarkup(chatId, message.MessageID, allDateMarkup)
-
 		bot.Send(msg)
-	case userRecButt:
 
-		if len(userRec[chatId]) == 0 {
+	case userRecButt:
+		mu.Lock()
+		user := LoadUserByID(chatId)
+		mu.Unlock()
+		if user.UserDate == "" {
 			sendReply(chatId, "Вы пока что не записались")
 		} else {
-			usr := fmt.Sprintf("<b>📝 Данные вашей записи:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userRec[chatId][0], userRec[chatId][1], userRec[chatId][2], userRec[chatId][3], userRec[chatId][4], userRec[chatId][5])
+			usr := fmt.Sprintf("<b>📝 Данные вашей записи:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", user.UserDate, user.UserTime, user.UserName, user.UserSurname, user.UserPhone, user.UserOrder)
 			sendReply(chatId, usr)
 			sendCancelButt(chatId)
 		}

@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
-
-	//"strconv"
-
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -62,29 +60,31 @@ func freeDays(f *excelize.File, dayChange int) map[string][]string {
 func cancelRec(f *excelize.File, id int64, userStorage map[int64]userStatus) {
 	mu.Lock()
 	defer mu.Unlock()
-	user := userStorage[id]
-	if user.userDate != "" {
+	user := LoadUserByID(id)
+	if user.UserDate != "" {
 		line, err := f.GetRows("Sheet1")
 		if err != nil {
 			fmt.Printf("Ошибка чтения строки: %v\n", err)
 
 		}
 		for i, r := range line {
-			if r[0] == user.userDate {
+			if r[0] == user.UserDate {
 				for j, c := range r {
-					if c == user.userTime {
+					if c == user.UserTime {
 						for v := range 4 {
 							cellRef, _ := excelize.CoordinatesToCellName(j+1, i+2+v)
 							f.SetCellValue("Sheet1", cellRef, "")
 						}
 						delete(userStorage, id)
 						delete(userRec, id)
+
 					}
 				}
 			}
 		}
 		f.Save()
 	}
+	os.Remove(fmt.Sprintf("%d.json", id))
 }
 func nearDate(f *excelize.File) (s string, sm []string) {
 	date := tomorrowDate(1)
@@ -111,8 +111,8 @@ func reFind(f *excelize.File, userStorage map[int64]userStatus, id int64) bool {
 	}
 
 	dataUs := []string{
-		userStruct.userDate,
-		userStruct.userTime,
+		userStruct.UserDate,
+		userStruct.UserTime,
 	}
 	for i, r := range line {
 		if strings.Contains(r[0], dataUs[0]) {
@@ -147,12 +147,12 @@ func newName(f *excelize.File, userStorage map[int64]userStatus, id int64) {
 	}
 
 	dataUs := []string{
-		userStruct.userDate,
-		userStruct.userTime,
-		userStruct.userName,
-		userStruct.userSurname,
-		userStruct.userPhone,
-		userStruct.userOrder,
+		userStruct.UserDate,
+		userStruct.UserTime,
+		userStruct.UserName,
+		userStruct.UserSurname,
+		userStruct.UserPhone,
+		userStruct.UserOrder,
 	}
 
 	for i, r := range line {
@@ -177,6 +177,7 @@ func newName(f *excelize.File, userStorage map[int64]userStatus, id int64) {
 	if err := f.Save(); err != nil {
 		fmt.Printf("Ошибка сохранения файла: %v\n", err)
 	}
+
 }
 func copyTable(f *excelize.File) {
 

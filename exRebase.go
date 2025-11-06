@@ -18,7 +18,7 @@ func runDailyUpdater(f *excelize.File) {
 		fmt.Printf("Ожидание до следующих суток: %v\n", sleepTime)
 		date := tomorrowDate(-1)
 		for key, user := range userStorage {
-			if user.userDate == date {
+			if user.UserDate == date {
 				cancelRec(f, key, userStorage)
 			}
 		}
@@ -44,7 +44,6 @@ func addFut(f *excelize.File) {
 		fmt.Println(err)
 	}
 	lenOfTable := len(line) - 5
-	fmt.Println(line[lenOfTable][0])
 	l := line[lenOfTable][0]
 	dateToAdd, err := getTomorrowShortDate(l)
 	if err != nil {
