@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -12,16 +17,46 @@ func waitUntilNextDay() time.Duration {
 	next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
 	return next.Sub(now)
 }
-func runDailyUpdater(f *excelize.File) {
+func FindJSONFileByContent(searchString string) (string, error) {
+	// Получаем список всех файлов в текущей директории
+	files, err := ioutil.ReadDir(".")
+	if err != nil {
+		return "", fmt.Errorf("ошибка при чтении директории: %w", err)
+	}
+
+	for _, file := range files {
+		// Проверяем, что это файл (не директория) и имеет расширение .json
+		if !file.IsDir() && filepath.Ext(file.Name()) == ".json" {
+			// Читаем содержимое файла
+			content, err := ioutil.ReadFile(file.Name())
+			if err != nil {
+				fmt.Printf("Ошибка при чтении файла %s: %v\n", file.Name(), err)
+				continue // Пропускаем файл, если не удалось прочитать
+			}
+
+			// Проверяем, содержится ли искомая строка в содержимом файла
+			if strings.Contains(string(content), searchString) {
+				// Возвращаем имя файла без расширения
+				filenameWithoutExt := strings.TrimSuffix(file.Name(), ".json")
+				return filenameWithoutExt, nil
+			}
+		}
+	}
+	// Если ни один файл не подошёл
+	return "", fmt.Errorf("файл с содержимым '%s' не найден", searchString)
+}
+
+func RunDailyUpdater(f *excelize.File) {
 	for {
 		sleepTime := waitUntilNextDay()
 		fmt.Printf("Ожидание до следующих суток: %v\n", sleepTime)
 		date := tomorrowDate(-1)
-		for key, user := range userStorage {
-			if user.UserDate == date {
-				cancelRec(f, key, userStorage)
-			}
+		id, err := FindJSONFileByContent(date)
+		ids, _ := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			fmt.Println(err)
 		}
+		cancelRec(f, ids, userStorage)
 		time.Sleep(sleepTime)
 		delPast(f)
 		addFut(f)
