@@ -78,7 +78,7 @@ func main() {
 
 	// наверное получаю апдейты с бота(скорее всего)
 	updates := bot.GetUpdatesChan(u)
-	go runDailyUpdater(f)
+	go RunDailyUpdater(f)
 	//delPast(f) //не забудь настроить
 	//addFut(f)
 	for {
