@@ -21,5 +21,6 @@ jobs:
           host: ${{ secrets.PI_HOST }}
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
+          passphrase: ${{ secrets.PI_SSH_PASSPHRASE }}
           script: /home/maksekak/scripts/deploy.sh
 
