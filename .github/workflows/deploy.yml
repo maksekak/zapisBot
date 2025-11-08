@@ -21,6 +21,7 @@ jobs:
           host: ${{ secrets.PI_HOST }}
           port: 22
           username: ${{ secrets.PI_USER }}
+          key_path: ~/.ssh/actionKey
           key: ${{ secrets.PI_SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }} 
           script: ~/scripts/deploy.sh
