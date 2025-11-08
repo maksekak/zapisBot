@@ -261,7 +261,7 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			userr := LoadUserByID(chatId)
 			mu.Unlock()
 			usr := fmt.Sprintf("<b>📝 Новая запись:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userr.UserDate, userr.UserTime, userr.UserName, userr.UserSurname, userr.UserPhone, userr.UserOrder)
-			//sendReply("idp", usr)
+			sendReply(244027577, usr)
 			sendReply(5063591758, usr)
 		} else {
 			sendReply(chatId, "Запись занята")
