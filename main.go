@@ -74,9 +74,6 @@ func main() {
 	// видимо настраиваю время полученя апдейтов
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	// создаю интерфейсы контекста
-
-	// наверное получаю апдейты с бота(скорее всего)
 	updates := bot.GetUpdatesChan(u)
 	go RunDailyUpdater(f)
 	//delPast(f) //не забудь настроить
@@ -118,10 +115,8 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 	if isReady {
 		// Безопасное добавление данных
 		mu.Lock()
-
 		inputData[chatID] = append(inputData[chatID], text)
 		currentData = inputData[chatID]
-
 		mu.Unlock()
 		if !getUserHasRec(chatID, userStorage) {
 			// Проверяем количество полей
@@ -144,16 +139,13 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 					validErr(chatID, currentData)
 					break
 				}
-
 			case 2:
-
 				if !HasValidTime(currentData[1]) {
 					sendReply(chatID, "Время введено неверно")
 					validErr(chatID, currentData)
 					break
 
 				}
-
 				sendReply(message.Chat.ID, "Пожалуйста, введите имя")
 				return
 			case 3:
@@ -181,7 +173,6 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 			sendCancelButt(chatID)
 			sendMenu(chatID)
 		}
-
 		// Сохраняем данные
 		if len(currentData) == 6 {
 			err := dataToStruct(currentData, chatID, userStorage)
@@ -212,7 +203,6 @@ func handleMessage(f *excelize.File, message *tgbotapi.Message, userStorage map[
 				return
 			}
 		}
-
 	}
 }
 func handleCommand(chatId int64, command string) error {
@@ -253,14 +243,12 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		if !getUserHasRec(chatId, userStorage) {
 			sendReply(message.Chat.ID, "Если хотите записаться, введите дату например: <b>01.01.25</b>")
 		}
-
 	case recButt:
 		log.Printf("Обработка записи для chatId=%d", chatId)
 		if reFind(f, userStorage, chatId) {
 			newName(f, userStorage, chatId)
 			user := userStorage[chatId]
 			msg := tgbotapi.NewEditMessageText(chatId, message.MessageID, fmt.Sprintf("<b>Запись успешно произведена на: %s - %s</b>", user.UserDate, user.UserTime))
-
 			msg.ReplyMarkup = nil
 			msg.ParseMode = tgbotapi.ModeHTML
 			bot.Send(msg)
@@ -269,6 +257,12 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			if err != nil {
 				fmt.Println(err)
 			}
+			mu.Lock()
+			userr := LoadUserByID(chatId)
+			mu.Unlock()
+			usr := fmt.Sprintf("<b>📝 Новая запись:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userr.UserDate, userr.UserTime, userr.UserName, userr.UserSurname, userr.UserPhone, userr.UserOrder)
+			//sendReply("idp", usr)
+			sendReply(5063591758, usr)
 		} else {
 			sendReply(chatId, "Запись занята")
 		}
@@ -280,7 +274,6 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		setUserReadyToRec(chatId)
 		i := daychange
 		freeDaysData := freeDays(f, i)
-
 		for key, val := range freeDaysData {
 			if key == tomorrowDate(i) {
 				if len(val) != 0 {
@@ -296,7 +289,6 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 		}
 		msg := tgbotapi.NewEditMessageReplyMarkup(chatId, message.MessageID, allDateMarkup)
 		bot.Send(msg)
-
 	case userRecButt:
 		mu.Lock()
 		user := LoadUserByID(chatId)
