@@ -24,5 +24,4 @@ jobs:
           key: ${{ secrets.PI_SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }} 
           script: ~/scripts/deploy.sh
-          timeout: 60s
           debug: true
