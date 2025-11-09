@@ -4,22 +4,16 @@ on:
   push:
     branches:
       - master
-
 jobs:
-  deploy:
+  build:
+    name: Build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
+      - name: Execute remote SSH commands using password
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            cd /home/maksekak/myapp/zapisBot
-            git pull origin main
-          #sudo systemctl restart ваше-приложение
+          username: linuxserver.io
+          password: ${{ secrets.PASSWORD }}
+          port: 22
+          script: whoami
