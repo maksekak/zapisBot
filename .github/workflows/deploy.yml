@@ -20,7 +20,7 @@ jobs:
         with:
           host: ${{ secrets.PI_HOST }}
           username: ${{ secrets.PI_USER }}
-          key_path: ~\.ssh\id_rsap.ppk
+          key_path: ~/.ssh/id_rsap.ppk
           #key: ${{ secrets.PI_SSH_KEY }} 
           script: ~/scripts/deploy.sh
           debug: true
