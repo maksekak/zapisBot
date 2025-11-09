@@ -15,5 +15,5 @@ jobs:
           host: ${{ secrets.PI_HOST }}
           username: linuxserver.io
           password: ${{ secrets.PASSWORD }}
-          port: 22
+          port: 2222
           script: whoami
