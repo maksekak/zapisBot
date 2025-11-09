@@ -15,10 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Fix permissions
-        run: |
-         chmod 600 C:/Users/maksekak/.ssh/id_rsa
-         chmod 644 C:/Users/maksekak/.ssh/id_rsa.pub
+    
        
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
