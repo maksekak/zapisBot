@@ -14,10 +14,27 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
+      - name: Setup SSH key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          # Создаём каталог .ssh с правильными правами
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Записываем приватный ключ в файл по явно указанному пути
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/actionKey
+
+          # Добавляем ключ в SSH-агент
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add ~/.ssh/actionKey
     
        
       - name: Deploy via SSH
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.PI_HOST }}
