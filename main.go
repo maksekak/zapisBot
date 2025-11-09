@@ -301,6 +301,12 @@ func handleBut(f *excelize.File, query *tgbotapi.CallbackQuery) {
 			sendCancelButt(chatId)
 		}
 	case cancelButt:
+		mu.Lock()
+		userr := LoadUserByID(chatId)
+		mu.Unlock()
+		usr := fmt.Sprintf("<b>📝 Запись отмененна:</b>\n<b>Дата:</b> %s - %s\n<b>Имя:</b> %s\n<b>Фамилия:</b> %s\n<b>Телефон:</b> %s\n<b>Заказ:</b> %s", userr.UserDate, userr.UserTime, userr.UserName, userr.UserSurname, userr.UserPhone, userr.UserOrder)
+		sendReply(244027577, usr)
+		sendReply(5063591758, usr)
 		cancelRec(f, chatId, userStorage)
 		msg := tgbotapi.NewEditMessageText(chatId, message.MessageID, "<b>Запись отменена</b>")
 		msg.ReplyMarkup = nil
