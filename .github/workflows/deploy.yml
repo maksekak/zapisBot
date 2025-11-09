@@ -16,12 +16,12 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.PI_SSH_KEY }}" > ~/.ssh/actionKey
-          chmod 600 ~/.ssh/actionKey
+          echo "${{ secrets.PI_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.PI_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
       - name: Pull latest changes on Raspberry Pi
         run: |
-          ssh -i ~/.ssh/actionKey -o IdentitiesOnly=yes ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} \
+          ssh -i ~/.ssh/id_rsa -o IdentitiesOnly=yes ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} \
           "cd myapp/zapisBot && git pull origin main"
