@@ -1,0 +1,18 @@
+[Unit]
+Description=ZapisBot - Telegram бот записи клиентов Pulver Farbe
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=zapisbot
+WorkingDirectory=/opt/zapisBot
+EnvironmentFile=/opt/zapisBot/.env
+ExecStart=/opt/zapisBot/zapis-bot
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
