@@ -66,11 +66,11 @@ func Load() *Config {
 			23: getEnvFloat("RADIUS_23_SURCHARGE", 0),
 			24: getEnvFloat("RADIUS_24_SURCHARGE", 0),
 		},
-		WorkHourStart:      getEnvInt("WORK_HOUR_START", 9),
-		WorkHourEnd:        getEnvInt("WORK_HOUR_END", 18),
-		TimeSlots:          parseIntList(getEnv("TIME_SLOTS", "9,10,11,14,15,16,17,18")),
+		WorkHourStart:       getEnvInt("WORK_HOUR_START", 9),
+		WorkHourEnd:         getEnvInt("WORK_HOUR_END", 18),
+		TimeSlots:           parseIntList(getEnv("TIME_SLOTS", "9,10,11,14,15,16,17,18")),
 		NotificationEnabled: getEnvBool("NOTIFICATION_ENABLED", true),
-	TelegramProxy:       getEnv("TELEGRAM_PROXY", ""),
+		TelegramProxy:       getEnv("TELEGRAM_PROXY", ""),
 	}
 
 	if cfg.TelegramToken == "" {

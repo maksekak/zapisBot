@@ -286,4 +286,3 @@ func (h *ClientHandler) showServicesInfo(chatID int64) {
 	sb.WriteString("\nНажмите <b>«📝 Записаться»</b>, чтобы рассчитать точную стоимость и выбрать удобное время.")
 	sendHTML(h.bot, chatID, sb.String(), mainMenuKeyboard())
 }
-

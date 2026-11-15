@@ -7,7 +7,7 @@ import (
 
 // SessionStore — потокобезопасное хранилище сессий пользователей в памяти.
 type SessionStore struct {
-	mu      sync.RWMutex
+	mu       sync.RWMutex
 	sessions map[int64]*UserSession
 }
 

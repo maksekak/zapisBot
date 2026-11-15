@@ -9,24 +9,24 @@ import (
 type FSMState string
 
 const (
-	StateStart               FSMState = "start"                  // приветствие / главное меню
-	StateRegistration        FSMState = "registration"           // ввод имени
-	StateMainMenu            FSMState = "main_menu"              // главное меню
-	StateOrderCategory       FSMState = "order_category"         // выбор категории услуги
-	StateOrderItemType       FSMState = "order_item_type"        // выбор типа изделия
-	StateOrderParameters     FSMState = "order_parameters"       // ввод параметров (радиус / габариты)
-	StateOrderColor          FSMState = "order_color"            // выбор цвета RAL
-	StateOrderCoating        FSMState = "order_coating"          // выбор покрытия (матовый/глянец)
-	StateOrderDate           FSMState = "order_date"             // выбор даты
-	StateOrderTime           FSMState = "order_time"             // выбор времени
-	StateOrderCalculator     FSMState = "order_calculator"       // показ калькулятора
-	StateOrderConfirm        FSMState = "order_confirm"          // подтверждение заказа
-	StateOrderContact        FSMState = "order_contact"          // запрос контакта (телефон)
-	StateRescheduleDate      FSMState = "reschedule_date"        // выбор новой даты при переносе
-	StateRescheduleTime      FSMState = "reschedule_time"        // выбор нового времени при переносе
-	StateAdminMenu           FSMState = "admin_menu"             // админ-меню
-	StateAdminPriceCRUD      FSMState = "admin_price_crud"       // CRUD прайс-листа
-	StateAdminWorkday        FSMState = "admin_workday"          // настройка рабочих дней
+	StateStart           FSMState = "start"            // приветствие / главное меню
+	StateRegistration    FSMState = "registration"     // ввод имени
+	StateMainMenu        FSMState = "main_menu"        // главное меню
+	StateOrderCategory   FSMState = "order_category"   // выбор категории услуги
+	StateOrderItemType   FSMState = "order_item_type"  // выбор типа изделия
+	StateOrderParameters FSMState = "order_parameters" // ввод параметров (радиус / габариты)
+	StateOrderColor      FSMState = "order_color"      // выбор цвета RAL
+	StateOrderCoating    FSMState = "order_coating"    // выбор покрытия (матовый/глянец)
+	StateOrderDate       FSMState = "order_date"       // выбор даты
+	StateOrderTime       FSMState = "order_time"       // выбор времени
+	StateOrderCalculator FSMState = "order_calculator" // показ калькулятора
+	StateOrderConfirm    FSMState = "order_confirm"    // подтверждение заказа
+	StateOrderContact    FSMState = "order_contact"    // запрос контакта (телефон)
+	StateRescheduleDate  FSMState = "reschedule_date"  // выбор новой даты при переносе
+	StateRescheduleTime  FSMState = "reschedule_time"  // выбор нового времени при переносе
+	StateAdminMenu       FSMState = "admin_menu"       // админ-меню
+	StateAdminPriceCRUD  FSMState = "admin_price_crud" // CRUD прайс-листа
+	StateAdminWorkday    FSMState = "admin_workday"    // настройка рабочих дней
 )
 
 // UserSession — сессия пользователя в процессе заполнения заказа.
