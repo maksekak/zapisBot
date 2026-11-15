@@ -42,14 +42,8 @@ func main() {
 	}
 	defer db.Close()
 
-	// Инициализация бота Telegram
-	tgBot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
-	if err != nil {
-		log.Fatalf("Не удалось инициализировать бота: %v", err)
-	}
-	tgBot.Debug = false
-
-	// Настройка прокси для Telegram API (если задан TELEGRAM_PROXY)
+	// Настройка HTTP клиента с прокси (если задан TELEGRAM_PROXY)
+	var httpClient *http.Client
 	if cfg.TelegramProxy != "" {
 		proxyURL, err := url.Parse(cfg.TelegramProxy)
 		if err != nil {
@@ -73,9 +67,21 @@ func main() {
 			}
 		}
 
-		tgBot.Client = &http.Client{Transport: transport}
+		httpClient = &http.Client{Transport: transport}
 		log.Printf("Прокси Telegram API включён: %s", cfg.TelegramProxy)
 	}
+
+	// Инициализация бота Telegram (первый запрос getMe пойдёт через прокси, если он задан)
+	var tgBot *tgbotapi.BotAPI
+	if httpClient != nil {
+		tgBot, err = tgbotapi.NewBotAPIWithClient(cfg.TelegramToken, tgbotapi.APIEndpoint, httpClient)
+	} else {
+		tgBot, err = tgbotapi.NewBotAPI(cfg.TelegramToken)
+	}
+	if err != nil {
+		log.Fatalf("Не удалось инициализировать бота: %v", err)
+	}
+	tgBot.Debug = false
 
 	log.Printf("Авторизован как %s", tgBot.Self.UserName)
 
