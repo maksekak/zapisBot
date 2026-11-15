@@ -33,6 +33,9 @@ type Config struct {
 
 	// Уведомления
 	NotificationEnabled bool
+
+	// Прокси для Telegram API (socks5:// или http://)
+	TelegramProxy string
 }
 
 // Load загружает конфигурацию из переменных окружения.
@@ -67,6 +70,7 @@ func Load() *Config {
 		WorkHourEnd:        getEnvInt("WORK_HOUR_END", 18),
 		TimeSlots:          parseIntList(getEnv("TIME_SLOTS", "9,10,11,14,15,16,17,18")),
 		NotificationEnabled: getEnvBool("NOTIFICATION_ENABLED", true),
+	TelegramProxy:       getEnv("TELEGRAM_PROXY", ""),
 	}
 
 	if cfg.TelegramToken == "" {

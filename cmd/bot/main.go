@@ -3,13 +3,18 @@ package main
 import (
 	"context"
 	"log"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
+	"golang.org/x/net/proxy"
 
 	"zapisBot/internal/bot"
 	"zapisBot/internal/bot/handlers"
@@ -43,6 +48,35 @@ func main() {
 		log.Fatalf("Не удалось инициализировать бота: %v", err)
 	}
 	tgBot.Debug = false
+
+	// Настройка прокси для Telegram API (если задан TELEGRAM_PROXY)
+	if cfg.TelegramProxy != "" {
+		proxyURL, err := url.Parse(cfg.TelegramProxy)
+		if err != nil {
+			log.Fatalf("Неверный адрес прокси TELEGRAM_PROXY: %v", err)
+		}
+
+		var transport http.RoundTripper = &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		}
+
+		// Для SOCKS5 прокси используем специальный dialer
+		if strings.HasPrefix(cfg.TelegramProxy, "socks5://") {
+			dialer, err := proxy.FromURL(proxyURL, proxy.Direct)
+			if err != nil {
+				log.Fatalf("Не удалось создать SOCKS5 dialer: %v", err)
+			}
+			transport = &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					return dialer.Dial(network, addr)
+				},
+			}
+		}
+
+		tgBot.Client = &http.Client{Transport: transport}
+		log.Printf("Прокси Telegram API включён: %s", cfg.TelegramProxy)
+	}
+
 	log.Printf("Авторизован как %s", tgBot.Self.UserName)
 
 	// Инициализация сервисов
