@@ -30,8 +30,8 @@ func (h *ClientHandler) askCategory(chatID int64, msgID int, session *bot.UserSe
 
 	kb := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("💨 Пескоструй", "cat:пескоструй"),
-			tgbotapi.NewInlineKeyboardButtonData("🎨 Покраска", "cat:покраска"),
+			tgbotapi.NewInlineKeyboardButtonData("Пескоструй", "cat:пескоструй"),
+			tgbotapi.NewInlineKeyboardButtonData("Покраска", "cat:покраска"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("❌ Отмена", "flow:cancel"),

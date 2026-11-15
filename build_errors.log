@@ -1,8 +1,0 @@
-﻿go : # zapisBot/internal/bot/handlers
-At line:1 char:1
-+ go build ./cmd/... 2>&1 | Out-File -Encoding UTF8 build_errors.log ;  ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (# zapisBot/internal/bot/handlers:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-internal\bot\handlers\client.go:2:1: syntax error: non-declaration statement outside function body

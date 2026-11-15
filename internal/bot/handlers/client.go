@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"html"
-	"log"
 	"strconv"
 	"strings"
 

@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -57,6 +61,10 @@ func main() {
 	clientHandler := handlers.NewClientHandler(cfg, db, tgBot, sessionStore, calc, orderSvc, scheduleSvc, notifySvc)
 	adminHandler := handlers.NewAdminHandler(cfg, db, tgBot, sessionStore)
 
+	// Контекст с graceful shutdown по SIGINT/SIGTERM
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	// Канал обновлений
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -66,10 +74,15 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(30 * time.Minute)
 		defer ticker.Stop()
-		for range ticker.C {
-			removed := sessionStore.Cleanup(24 * time.Hour)
-			if removed > 0 {
-				log.Printf("Очищено сессий: %d", removed)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				removed := sessionStore.Cleanup(24 * time.Hour)
+				if removed > 0 {
+					log.Printf("Очищено сессий: %d", removed)
+				}
 			}
 		}
 	}()
@@ -78,9 +91,14 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(6 * time.Hour)
 		defer ticker.Stop()
-		for range ticker.C {
-			if err := scheduleSvc.InitSchedule(); err != nil {
-				log.Printf("Ошибка продления расписания: %v", err)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := scheduleSvc.InitSchedule(); err != nil {
+					log.Printf("Ошибка продления расписания: %v", err)
+				}
 			}
 		}
 	}()
@@ -90,9 +108,14 @@ func main() {
 		go func() {
 			ticker := time.NewTicker(5 * time.Minute)
 			defer ticker.Stop()
-			for range ticker.C {
-				if err := notifySvc.CheckReminders(); err != nil {
-					log.Printf("Ошибка проверки напоминаний: %v", err)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if err := notifySvc.CheckReminders(); err != nil {
+						log.Printf("Ошибка проверки напоминаний: %v", err)
+					}
 				}
 			}
 		}()
@@ -101,40 +124,50 @@ func main() {
 	log.Println("Бот запущен. Нажмите Ctrl+C для остановки.")
 
 	// Основной цикл обработки обновлений
-	for update := range updates {
-		if update.Message != nil {
-			msg := update.Message
-			if msg.From == nil {
-				continue
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Получен сигнал остановки, завершение работы...")
+			return
+		case update, ok := <-updates:
+			if !ok {
+				log.Println("Канал обновлений закрыт")
+				return
 			}
-			userID := msg.From.ID
-			chatID := msg.Chat.ID
-
-			// Если админ и в админ-состоянии или команда /admin — обрабатываем через админ-хендлер
-			if cfg.IsAdmin(userID) {
-				session := sessionStore.Get(chatID)
-				session.Lock()
-				state := session.State
-				session.Unlock()
-
-				if msg.Text == "/admin" ||
-					state == bot.StateAdminPriceCRUD ||
-					state == bot.StateAdminWorkday ||
-					state == bot.StateAdminMenu {
-					go adminHandler.HandleMessage(update)
+			if update.Message != nil {
+				msg := update.Message
+				if msg.From == nil {
 					continue
 				}
-			}
+				userID := msg.From.ID
+				chatID := msg.Chat.ID
 
-			go clientHandler.HandleMessage(update)
-		}
-		if update.CallbackQuery != nil {
-			cb := update.CallbackQuery
-			if cb.From != nil && cb.Message != nil && cfg.IsAdmin(cb.From.ID) && len(cb.Data) >= 4 && cb.Data[:4] == "adm:" {
-				go adminHandler.HandleCallback(update)
-				continue
+				// Если админ и в админ-состоянии или команда /admin — обрабатываем через админ-хендлер
+				if cfg.IsAdmin(userID) {
+					session := sessionStore.Get(chatID)
+					session.Lock()
+					state := session.State
+					session.Unlock()
+
+					if msg.Text == "/admin" ||
+						state == bot.StateAdminPriceCRUD ||
+						state == bot.StateAdminWorkday ||
+						state == bot.StateAdminMenu {
+						go adminHandler.HandleMessage(update)
+						continue
+					}
+				}
+
+				go clientHandler.HandleMessage(update)
 			}
-			go clientHandler.HandleCallback(update)
+			if update.CallbackQuery != nil {
+				cb := update.CallbackQuery
+				if cb.From != nil && cb.Message != nil && cfg.IsAdmin(cb.From.ID) && len(cb.Data) >= 4 && cb.Data[:4] == "adm:" {
+					go adminHandler.HandleCallback(update)
+					continue
+				}
+				go clientHandler.HandleCallback(update)
+			}
 		}
 	}
 }
